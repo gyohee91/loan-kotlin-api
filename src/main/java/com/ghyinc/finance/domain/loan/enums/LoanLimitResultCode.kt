@@ -1,16 +1,14 @@
-package com.ghyinc.finance.domain.loan.enums;
+package com.ghyinc.finance.domain.loan.enums
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import lombok.RequiredArgsConstructor;
-
-import java.util.Arrays;
-import java.util.Objects;
+import com.fasterxml.jackson.annotation.JsonCreator
 
 /**
  * 한도조회 결과 코드
  */
-@RequiredArgsConstructor
-public enum LoanLimitResultCode {
+enum class LoanLimitResultCode(
+    val code: String,
+    val description: String
+) {
     SUCCESS("00", "정상"),
     LIMIT_DENIED("11", "한도 부결"),
     DUPLICATE_REQUEST("21", "중복 신청"),
@@ -19,21 +17,19 @@ public enum LoanLimitResultCode {
     TIMEOUT("92", "timeout"),
     UNKNOWN_ERROR("99", "알 수 없는 오류");
 
-    private final String code;
-    private final String description;
+    val isSuccess: Boolean
+        get() = this == SUCCESS
 
-    public boolean isSuccess() {
-        return this == SUCCESS;
-    }
-
-    @JsonCreator
-    public static LoanLimitResultCode from(String resultCode) {
-        for(LoanLimitResultCode code : LoanLimitResultCode.values()) {
-            if(Objects.equals(code.code, resultCode)) {
-                return code;
+    companion object {
+        @JsonCreator
+        fun from(resultCode: String?): LoanLimitResultCode {
+            for (code in entries) {
+                if (code.code == resultCode) {
+                    return code
+                }
             }
-        }
 
-        return UNKNOWN_ERROR;
+            return UNKNOWN_ERROR
+        }
     }
 }

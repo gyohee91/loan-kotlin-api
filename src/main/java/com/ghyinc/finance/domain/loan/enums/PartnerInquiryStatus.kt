@@ -1,6 +1,6 @@
-package com.ghyinc.finance.domain.loan.enums;
+package com.ghyinc.finance.domain.loan.enums
 
-public enum PartnerInquiryStatus {
+enum class PartnerInquiryStatus {
     PENDING,
     SEND_SUCCESS,
     SEND_FAILED,

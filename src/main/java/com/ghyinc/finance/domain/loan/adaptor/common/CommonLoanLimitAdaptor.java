@@ -48,7 +48,7 @@ public class CommonLoanLimitAdaptor implements LoanLimitAdaptor {
 
     @Override
     public boolean supports(PartnerCode partnerCode) {
-        return partnerCode.isStandard();
+        return partnerCode.getStandard();
     }
 
     @Override

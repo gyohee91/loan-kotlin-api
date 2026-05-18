@@ -19,7 +19,7 @@ public class CommonResultAdaptor implements LoanLimitResultAdaptor {
 
     @Override
     public boolean supports(PartnerCode partnerCode) {
-        return partnerCode.isStandard();
+        return partnerCode.getStandard();
     }
 
     @Override

@@ -48,15 +48,17 @@ public class NotificationService {
 
 
             // Outbox Insert
-            OutboxEvent outboxEvent = OutboxEvent.builder()
-                    .aggregateType("Notification")
-                    .aggregateId(String.valueOf(notification.getId()))
-                    .eventType("NOTIFICATION_SEND")
-                    .payload(objectMapper.writeValueAsString(
+            OutboxEvent outboxEvent = OutboxEvent.create(
+                       "Notification"
+                    ,   String.valueOf(notification.getId())
+                    ,   "NOTIFICATION_SEND"
+                    ,   objectMapper.writeValueAsString(
                             NotificationEvent.from(notification)
-                    ))
-                    .status(OutboxStatus.PENDING)
-                    .build();
+                    )
+                    ,   OutboxStatus.PENDING
+                    ,   null
+                    ,   0
+            );
 
             outboxEventRepository.save(outboxEvent);
 

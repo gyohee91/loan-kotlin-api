@@ -1,6 +1,6 @@
-package com.ghyinc.finance.domain.loan.enums;
+package com.ghyinc.finance.domain.loan.enums
 
-public enum InquiryStatus {
+enum class InquiryStatus {
     PENDING,
     SUCCESS,
     IN_PROGRESS,

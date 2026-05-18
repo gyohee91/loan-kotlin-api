@@ -1,6 +1,6 @@
-package com.ghyinc.finance.domain.loan.enums;
+package com.ghyinc.finance.domain.loan.enums
 
-public enum PartnerType {
+enum class PartnerType {
     BANK,
     CAPITAL,
     CARD

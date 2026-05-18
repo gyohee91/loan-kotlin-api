@@ -30,7 +30,7 @@ public class MorgageLoanLimitStrategy implements LoanLimitStrategy {
 
     @Override
     public LoanType getLoanType() {
-        return LoanType.MORTGATE;
+        return LoanType.MORTGAGE;
     }
 
     @Override
