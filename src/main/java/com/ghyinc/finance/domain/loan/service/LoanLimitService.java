@@ -82,19 +82,19 @@ public class LoanLimitService {
         }
 
         // LoanLimitInquiry INSERT
-        LoanLimitInquiry inquiry = LoanLimitInquiry.builder()
-                .inquiryNo(generator.generate("LL"))
-                .userId(request.userId())
-                .name(request.name())
-                .ci(request.ci())
-                .jobType(request.jobType())
-                .jobName(request.jobName())
-                .joinDate(request.joinDate())
-                .loanType(request.loanType())
-                .carNo(request.carNo())
-                .agreePersonalCreditInfo(request.agreePersonalCreditInfo())
-                .agreePersonalCreditTime(request.agreePersonalCreditTime())
-                .build();
+        LoanLimitInquiry inquiry = LoanLimitInquiry.create(
+                generator.generate("LL"),
+                request.userId(),
+                request.name(),
+                request.ci(),
+                request.loanType(),
+                request.jobType(),
+                request.jobName(),
+                request.joinDate(),
+                request.carNo(),
+                request.agreePersonalCreditInfo(),
+                request.agreePersonalCreditTime()
+        );
 
         loanLimitInquiryRepository.save(inquiry);
 

@@ -119,121 +119,100 @@ public class DataInitializer implements ApplicationRunner {
         partnerRepository.saveAll(initialPartner);
 
         List<PartnerLoanType> initialPartnerLoanType = List.of(
-                PartnerLoanType.builder()
-                        .partner(
-                                initialPartner.stream()
-                                        .filter(partner -> Objects.equals(PartnerCode.KAKAO_BANK, partner.getPartnerCode()))
-                                        .findFirst()
-                                        .orElse(null)
-                        )
-                        .loanType(LoanType.PERSONAL_CREDIT)
-                        .active(true)
-                        .build(),
-                PartnerLoanType.builder()
-                        .partner(
-                                initialPartner.stream()
-                                        .filter(partner -> Objects.equals(PartnerCode.TOSS_BANK, partner.getPartnerCode()))
-                                        .findFirst()
-                                        .orElse(null)
-                        )
-                        .loanType(LoanType.PERSONAL_CREDIT)
-                        .active(true)
-                        .build(),
-                PartnerLoanType.builder()
-                        .partner(
-                                initialPartner.stream()
-                                        .filter(partner -> Objects.equals(PartnerCode.LINE_BANK, partner.getPartnerCode()))
-                                        .findFirst()
-                                        .orElse(null)
-                        )
-                        .loanType(LoanType.PERSONAL_CREDIT)
-                        .active(true)
-                        .build(),
-                PartnerLoanType.builder()
-                        .partner(
-                                initialPartner.stream()
-                                        .filter(partner -> Objects.equals(PartnerCode.KB_CAPITAL, partner.getPartnerCode()))
-                                        .findFirst()
-                                        .orElse(null)
-                        )
-                        .loanType(LoanType.BUSINESS)
-                        .active(true)
-                        .build(),
-                PartnerLoanType.builder()
-                        .partner(
-                                initialPartner.stream()
-                                        .filter(partner -> Objects.equals(PartnerCode.SHINHAN_BANK, partner.getPartnerCode()))
-                                        .findFirst()
-                                        .orElse(null)
-                        )
-                        .loanType(LoanType.PERSONAL_CREDIT)
-                        .active(true)
-                        .build()
+                PartnerLoanType.create(
+                            initialPartner.stream()
+                                    .filter(partner -> Objects.equals(PartnerCode.KAKAO_BANK, partner.getPartnerCode()))
+                                    .findFirst()
+                                    .orElse(null)
+                        ,   LoanType.PERSONAL_CREDIT
+                        ,   true
+                ),
+                PartnerLoanType.create(
+                        initialPartner.stream()
+                                .filter(partner -> Objects.equals(PartnerCode.TOSS_BANK, partner.getPartnerCode()))
+                                .findFirst()
+                                .orElse(null)
+                        ,   LoanType.PERSONAL_CREDIT
+                        ,   true
+                ),
+                PartnerLoanType.create(
+                        initialPartner.stream()
+                                .filter(partner -> Objects.equals(PartnerCode.LINE_BANK, partner.getPartnerCode()))
+                                .findFirst()
+                                .orElse(null)
+                        ,   LoanType.PERSONAL_CREDIT
+                        ,   true
+                ),
+                PartnerLoanType.create(
+                        initialPartner.stream()
+                                .filter(partner -> Objects.equals(PartnerCode.KB_CAPITAL, partner.getPartnerCode()))
+                                .findFirst()
+                                .orElse(null)
+                        ,   LoanType.BUSINESS
+                        ,   true
+                ),
+                PartnerLoanType.create(
+                        initialPartner.stream()
+                                .filter(partner -> Objects.equals(PartnerCode.SHINHAN_BANK, partner.getPartnerCode()))
+                                .findFirst()
+                                .orElse(null)
+                        ,   LoanType.PERSONAL_CREDIT
+                        ,   true
+                )
         );
 
         partnerLoanTypeRepository.saveAll(initialPartnerLoanType);
 
         List<Product> initialProduct = List.of(
-                Product.builder()
-                        .loanType(LoanType.PERSONAL_CREDIT)
-                        .partner(
-                                initialPartner.stream()
-                                        .filter(partner -> Objects.equals(PartnerCode.LINE_BANK, partner.getPartnerCode()))
-                                        .findFirst()
-                                        .orElse(null)
-                        )
-                        .productCode("P060100206")
-                        .productName("사잇돌")
-                        .active(true)
-                        .build(),
-                Product.builder()
-                        .loanType(LoanType.PERSONAL_CREDIT)
-                        .partner(
-                                initialPartner.stream()
-                                        .filter(partner -> Objects.equals(PartnerCode.LINE_BANK, partner.getPartnerCode()))
-                                        .findFirst()
-                                        .orElse(null)
-                        )
-                        .productCode("P060100205")
-                        .productName("드림론")
-                        .active(true)
-                        .build(),
-                Product.builder()
-                        .loanType(LoanType.PERSONAL_CREDIT)
-                        .partner(
-                                initialPartner.stream()
-                                        .filter(partner -> Objects.equals(PartnerCode.KAKAO_BANK, partner.getPartnerCode()))
-                                        .findFirst()
-                                        .orElse(null)
-                        )
-                        .productCode("TA")
-                        .productName("갈아타기OK론")
-                        .active(true)
-                        .build(),
-                Product.builder()
-                        .loanType(LoanType.PERSONAL_CREDIT)
-                        .partner(
-                                initialPartner.stream()
-                                        .filter(partner -> Objects.equals(PartnerCode.TOSS_BANK, partner.getPartnerCode()))
-                                        .findFirst()
-                                        .orElse(null)
-                        )
-                        .productCode("FNQ005")
-                        .productName("kiwi비상금")
-                        .active(true)
-                        .build(),
-                Product.builder()
-                        .loanType(LoanType.PERSONAL_CREDIT)
-                        .partner(
-                                initialPartner.stream()
-                                        .filter(partner -> Objects.equals(PartnerCode.SHINHAN_BANK, partner.getPartnerCode()))
-                                        .findFirst()
-                                        .orElse(null)
-                        )
-                        .productCode("0201001074")
-                        .productName("비상금신한론")
-                        .active(true)
-                        .build()
+                Product.create(
+                           initialPartner.stream()
+                                .filter(partner -> Objects.equals(PartnerCode.LINE_BANK, partner.getPartnerCode()))
+                                .findFirst()
+                                .orElse(null)
+                        ,   LoanType.PERSONAL_CREDIT
+                        ,   "P060100206"
+                        ,   "사잇돌"
+                        ,   true
+                        ),
+                Product.create(
+                        initialPartner.stream()
+                                .filter(partner -> Objects.equals(PartnerCode.LINE_BANK, partner.getPartnerCode()))
+                                .findFirst()
+                                .orElse(null)
+                        ,   LoanType.PERSONAL_CREDIT
+                        ,   "P060100205"
+                        ,   "드림론"
+                        ,   true
+                ),
+                Product.create(
+                        initialPartner.stream()
+                                .filter(partner -> Objects.equals(PartnerCode.KAKAO_BANK, partner.getPartnerCode()))
+                                .findFirst()
+                                .orElse(null)
+                        ,   LoanType.PERSONAL_CREDIT
+                        ,   "TA"
+                        ,   "갈아타기OK론"
+                        ,   true
+                ),
+                Product.create(
+                        initialPartner.stream()
+                                .filter(partner -> Objects.equals(PartnerCode.TOSS_BANK, partner.getPartnerCode()))
+                                .findFirst()
+                                .orElse(null)
+                        ,   LoanType.PERSONAL_CREDIT
+                        ,   "FNQ005"
+                        ,   "kiwi비상금"
+                        ,   true
+                ),
+                Product.create(
+                        initialPartner.stream()
+                                .filter(partner -> Objects.equals(PartnerCode.SHINHAN_BANK, partner.getPartnerCode()))
+                                .findFirst()
+                                .orElse(null)
+                        ,   LoanType.PERSONAL_CREDIT
+                        ,   "0201001074"
+                        ,   "비상금신한론"
+                        ,   true)
         );
         productRepository.saveAll(initialProduct);
 

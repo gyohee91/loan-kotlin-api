@@ -1,43 +1,53 @@
-package com.ghyinc.finance.domain.loan.entity;
+package com.ghyinc.finance.domain.loan.entity
 
-import com.ghyinc.finance.domain.loan.enums.LoanType;
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.Comment;
+import com.ghyinc.finance.domain.loan.enums.LoanType
+import com.ghyinc.finance.global.common.BaseTimeEntity
+import jakarta.persistence.*
+import org.hibernate.annotations.Comment
 
 @Entity
-@Table(
-        indexes = {
-                @Index(
-                        name = "idx_product_partner_code_loan_type",
-                        columnList = "partner_id, loan_type"
-                )
-        }
-)
-@Getter
-@Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-public class Product {
+@Table(indexes = [Index(name = "idx_product_partner_code_loan_type", columnList = "partner_id, loan_type")])
+
+class Product : BaseTimeEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    var id: Long? = null
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "partner_id", nullable = false)
-    private Partner partner;
+    var partner: Partner? = null
+        private set
 
     @Enumerated(EnumType.STRING)
     @Comment("대출유형")
-    private LoanType loanType;
+    var loanType: LoanType? = null
 
     @Comment("상품코드")
-    private String productCode;
+    var productCode: String? = null
 
     @Comment("상품명")
-    private String productName;
+    var productName: String? = null
 
     @Column(nullable = false)
     @Comment("활성화 여부")
-    private Boolean active;
+    var active: Boolean? = null
+
+    companion object {
+        @JvmStatic
+        fun create(
+            partner: Partner? = null,
+            loanType: LoanType,
+            productCode: String,
+            productName: String,
+            active: Boolean
+        ): Product {
+            val entity = Product()
+            entity.partner = partner
+            entity.loanType = loanType
+            entity.productCode = productCode
+            entity.productName = productName
+            entity.active = active
+            return entity
+        }
+    }
 }

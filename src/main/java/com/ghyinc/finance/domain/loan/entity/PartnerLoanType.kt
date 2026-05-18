@@ -1,30 +1,41 @@
-package com.ghyinc.finance.domain.loan.entity;
+package com.ghyinc.finance.domain.loan.entity
 
-import com.ghyinc.finance.domain.loan.enums.LoanType;
-import com.ghyinc.finance.global.common.BaseTimeEntity;
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.Comment;
+import com.ghyinc.finance.domain.loan.enums.LoanType
+import com.ghyinc.finance.global.common.BaseTimeEntity
+import jakarta.persistence.*
+import org.hibernate.annotations.Comment
 
 @Entity
-@Getter
-@Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-public class PartnerLoanType extends BaseTimeEntity {
+class PartnerLoanType : BaseTimeEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long? = null
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "partner_id")
-    private Partner partner;
+    var partner: Partner? = null
+        private set
 
     @Enumerated(EnumType.STRING)
     @Comment("대출 유형")
-    private LoanType loanType;
+    var loanType: LoanType? = null
 
     @Column(nullable = false)
     @Comment("활성 여부")
-    private Boolean active;
+    var active: Boolean? = null
+
+    companion object {
+        @JvmStatic
+        fun create(
+            partner: Partner? = null,
+            loanType: LoanType,
+            active: Boolean = false
+        ): PartnerLoanType {
+            val entity = PartnerLoanType()
+            entity.partner = partner
+            entity.loanType = loanType
+            entity.active = active
+            return entity
+        }
+    }
 }

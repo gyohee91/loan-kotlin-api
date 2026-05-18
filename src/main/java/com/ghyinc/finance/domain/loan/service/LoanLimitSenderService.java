@@ -69,7 +69,7 @@ public class LoanLimitSenderService {
     @Async("loanLimitExecutor")
     @Transactional
     public void inquiry(
-            long id,
+            Long id,
             List<PartnerCode> partnerCodes,
             LoanLimitAdaptorRequest adaptorRequest
     ) {

@@ -1,125 +1,142 @@
-package com.ghyinc.finance.domain.loan.entity;
+package com.ghyinc.finance.domain.loan.entity
 
-import com.ghyinc.finance.domain.loan.enums.InquiryStatus;
-import com.ghyinc.finance.domain.loan.enums.JobType;
-import com.ghyinc.finance.domain.loan.enums.LoanType;
-import com.ghyinc.finance.global.common.BaseTimeEntity;
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.Comment;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import com.ghyinc.finance.domain.loan.enums.InquiryStatus
+import com.ghyinc.finance.domain.loan.enums.JobType
+import com.ghyinc.finance.domain.loan.enums.LoanType
+import com.ghyinc.finance.global.common.BaseTimeEntity
+import jakarta.persistence.*
+import lombok.*
+import org.hibernate.annotations.Comment
+import java.time.LocalDateTime
 
 @Entity
-@Table(
-        indexes = {
-                @Index(
-                        name = "idx_inquiry_user_id_loan_type_status",
-                        columnList = "user_id, loan_type, status"
-                )
-        }
-)
-@Getter
-@Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-public class LoanLimitInquiry extends BaseTimeEntity {
+@Table(indexes = [Index(name = "idx_inquiry_user_id_loan_type_status", columnList = "user_id, loan_type, status")])
+class LoanLimitInquiry: BaseTimeEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long? = null
 
     @Column(nullable = false, unique = true)
     @Comment("업무 식별번호")
-    private String inquiryNo;   // 외부 노출용 (FE 폴링, 콜백 연결, 이력 조회 KEY)
+    var inquiryNo: String? = null      // 외부 노출용 (FE 폴링, 콜백 연결, 이력 조회 KEY)
 
     @Column(nullable = false)
     @Comment("고객번호")
-    private Long userId;
+    var userId: Long? = null
 
     @Comment("고객명")
-    private String name;
+    var name: String? = null
 
     @Comment("CI")
-    private String ci;
+    var ci: String? = null
 
     @Enumerated(EnumType.STRING)
     @Comment("직업 구분")
-    private JobType jobType;
+    var jobType: JobType? = null
 
     @Comment("직장명")
-    private String jobName;
+    var jobName: String? = null
 
     @Comment("입사년월(개업년월)")
-    private String joinDate;
+    var joinDate: String? = null
 
     @Enumerated(EnumType.STRING)
     @Comment("대출 유형")
-    private LoanType loanType;
+    var loanType: LoanType? = null
 
     @Comment("차량번호")
-    private String carNo;
+    var carNo: String? = null
 
     @Comment("신용정보 수집 이용 제공 동의 여부")
-    private boolean agreePersonalCreditInfo;
+    var agreePersonalCreditInfo: Boolean = false
 
     @Comment("신용정보 수집 이용 제공 동의 시간")
-    private LocalDateTime agreePersonalCreditTime;
+    var agreePersonalCreditTime: LocalDateTime? = null
 
     @Enumerated(EnumType.STRING)
     @Comment("응답 결과")
     @Builder.Default
-    private InquiryStatus status = InquiryStatus.PENDING;
+    var status: InquiryStatus? = InquiryStatus.PENDING
+        private set
 
     @Comment("전체 상품 갯수")
-    private int totalProductCount;
+    var totalProductCount: Int = 0
+        private set
 
     @Comment("Success 상품 갯수")
-    private int successProductCount;
+    var successProductCount: Int = 0
+        private set
 
-    @OneToMany(mappedBy = "loanLimitInquiry", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<LoanLimitResult> results = new ArrayList<>();
+    @OneToMany(mappedBy = "loanLimitInquiry", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val results: MutableList<LoanLimitResult> = mutableListOf()
 
-    @OneToMany(mappedBy = "loanLimitInquiry", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<LoanLimitProductResult> productResults = new ArrayList<>();
+    @OneToMany(mappedBy = "loanLimitInquiry", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val productResults: MutableList<LoanLimitProductResult> = mutableListOf()
 
-    public void updateInquiryStatus(InquiryStatus status) {
-        this.status = status;
+    fun updateInquiryStatus(status: InquiryStatus) {
+        this.status = status
     }
 
-    public void addResult(LoanLimitResult result) {
-        this.results.add(result);
-        result.assignInquiry(this);
+    fun addResult(result: LoanLimitResult) {
+        this.results.add(result)
+        result.assignInquiry(this)
     }
 
-    public void addProductResult(LoanLimitProductResult productResult) {
-        this.productResults.add(productResult);
-        productResult.assignInquiry(this);
+    fun addProductResult(productResult: LoanLimitProductResult) {
+        this.productResults.add(productResult)
+        productResult.assignInquiry(this)
     }
 
-    public void initProductCount(int total) {
-        this.totalProductCount = total;
-        this.successProductCount = 0;
+    fun initProductCount(total: Int) {
+        this.totalProductCount = total
+        this.successProductCount = 0
     }
 
-    public void incrementSuccessCount() {
-        this.successProductCount++;
+    fun incrementSuccessCount() {
+        this.successProductCount++
     }
 
-    /**
-     * 한도결과 수신 진행률 (0 ~ 100)
-     * @return
-     */
-    public int getProgressRate() {
-        if (totalProductCount == 0)
-            return 0;
-        return (int) ((successProductCount * 100.0) / totalProductCount);
-    }
+    val progressRate: Int
+        /**
+         * 한도결과 수신 진행률 (0 ~ 100)
+         * @return
+         */
+        get() {
+            if (totalProductCount == 0) return 0
+            return ((successProductCount * 100.0) / totalProductCount).toInt()
+        }
 
-    public boolean isAllResultReceived() {
-        return successProductCount >= totalProductCount;
+    val isAllResultReceived: Boolean
+        get() = successProductCount >= totalProductCount
+
+    companion object {
+        @JvmStatic
+        fun create(
+            inquiryNo: String,
+            userId: Long,
+            name: String? = null,
+            ci: String? = null,
+            loanType: LoanType? = null,
+            jobType: JobType? = null,
+            jobName: String? = null,
+            joinDate: String? = null,
+            carNo: String? = null,
+            agreePersonalCreditInfo: Boolean = false,
+            agreePersonalCreditTime: LocalDateTime? = null
+        ): LoanLimitInquiry {
+            val entity = LoanLimitInquiry()
+            entity.inquiryNo = inquiryNo
+            entity.userId = userId
+            entity.name = name
+            entity.ci = ci
+            entity.loanType = loanType
+            entity.jobType = jobType
+            entity.jobName = jobName
+            entity.joinDate = joinDate
+            entity.carNo = carNo
+            entity.agreePersonalCreditInfo = agreePersonalCreditInfo
+            entity.agreePersonalCreditTime = agreePersonalCreditTime
+            return entity
+        }
     }
 }

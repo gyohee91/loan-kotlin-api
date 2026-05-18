@@ -1,6 +1,6 @@
 spring:
   application:
-    name: bigin
+    name: loan-kotlin-api
 
   profiles:
     active: local
