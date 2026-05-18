@@ -199,14 +199,13 @@ class LoanLimitServiceTest {
         given(strategyFactory.getStrategy(any())).willReturn(strategy);
         given(strategy.requiresExternalData()).willReturn(true);
 
-        ExternalDataContext externalDataContext = ExternalDataContext.builder()
-                .errors(Map.of("NICE_DNR",
-                        ExternalDataError.builder()
-                                .code("NICE_DNR_ERROR")
-                                .message("NICE DNR 조회 오류")
-                                .build())
+        ExternalDataContext externalDataContext = ExternalDataContext.ofError(
+                "NICE_DNR",
+                ExternalDataError.create(
+                        "NICE_DNR_ERROR",
+                        "NICE DNR 조회 오류"
                 )
-                .build();
+        );
         given(strategy.fetchExternalData(any())).willReturn(externalDataContext);
         given(strategy.getSupportedBanks()).willReturn(List.of(PartnerCode.LINE_BANK));
         given(strategy.filterAvailablePartners(any(), any())).willReturn(List.of());

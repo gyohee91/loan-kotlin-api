@@ -6,8 +6,6 @@ import lombok.RequiredArgsConstructor
 /**
  * 대출 유형
  */
-@Getter
-@RequiredArgsConstructor
 enum class LoanType(val description: String) {
     PERSONAL_CREDIT("신용대출"),
     MORTGAGE("주택담보대출"),

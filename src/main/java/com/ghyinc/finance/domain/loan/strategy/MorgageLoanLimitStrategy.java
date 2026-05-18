@@ -50,21 +50,18 @@ public class MorgageLoanLimitStrategy implements LoanLimitStrategy {
     public ExternalDataContext fetchExternalData(LoanLimitRequest request) {
         try {
             KbAppraisalResult result = kbAppraisalService.inquireKbAppraisal(request.address());
-            return ExternalDataContext.builder()
-                    .kbAppraisalResult(result)
-                    .build();
+            return ExternalDataContext.ofKbAppraisal(result);
         } catch (ExternalApiFailException e) {
             log.error("KB 부동산 조회 실패. address={}", request.address(), e);
 
             // 예외를 던지지 않고 오류 정보만 context에 담아 return
-            return ExternalDataContext.builder()
-                    .errors(Map.of("KB_APPRAISAL",
-                            ExternalDataError.builder()
-                                    .code("KB_APPRAISAL_ERROR")
-                                    .message(e.getMessage())
-                                    .build()
-                    ))
-                    .build();
+            return ExternalDataContext.ofError(
+                    "KB_APPRAISAL",
+                    ExternalDataError.create(
+                            "KB_APPRAISAL_ERROR",
+                            e.getMessage()
+                    )
+            );
         }
     }
 

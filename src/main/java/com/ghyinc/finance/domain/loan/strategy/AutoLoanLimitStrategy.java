@@ -49,21 +49,18 @@ public class AutoLoanLimitStrategy implements LoanLimitStrategy{
     public ExternalDataContext fetchExternalData(LoanLimitRequest request) {
         try {
             NiceDnrResult result = niceDnrService.inquireNiceDnr(request.carNo(), request.name());
-            return ExternalDataContext.builder()
-                    .niceDnrResult(result)
-                    .build();
+            return ExternalDataContext.ofNiceDnr(result);
         } catch (ExternalApiFailException e) {
             log.error("Nice DNR 조회 실패. carNo={}", request.carNo(), e);
 
             // 예외를 던지지 않고 오류 정보만 context에 담아 return
-            return ExternalDataContext.builder()
-                    .errors(Map.of("NICE_DNR",
-                            ExternalDataError.builder()
-                                    .code("NICE_DNR_ERROR")
-                                    .message(e.getMessage())
-                                    .build()
-                    ))
-                    .build();
+            return ExternalDataContext.ofError(
+                    "NICE_DNR",
+                    ExternalDataError.create(
+                            "NICE_DNR_ERROR",
+                            e.getMessage()
+                    )
+            );
         }
     }
 
