@@ -6,8 +6,14 @@ import jakarta.persistence.*
 import org.hibernate.annotations.Comment
 
 @Entity
-@Table(indexes = [Index(name = "idx_product_partner_code_loan_type", columnList = "partner_id, loan_type")])
-
+@Table(
+    indexes = [
+        Index(
+            name = "idx_product_partner_code_loan_type",
+            columnList = "partner_id, loan_type"
+        )
+    ]
+)
 class Product : BaseTimeEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

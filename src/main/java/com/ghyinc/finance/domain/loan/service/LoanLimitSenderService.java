@@ -86,10 +86,13 @@ public class LoanLimitSenderService {
                     .collect(Collectors.toMap(
                             partnerCode -> partnerCode,
                             partnerCode -> {
-                                LoanLimitResult result = LoanLimitResult.builder()
-                                        .loanLimitInquiry(loanLimitInquiry)
-                                        .partnerCode(partnerCode)
-                                        .build();
+                                LoanLimitResult result = LoanLimitResult.create(
+                                            loanLimitInquiry
+                                        ,   partnerCode
+                                        ,   InquiryStatus.PENDING
+                                        ,   null
+                                        ,   0L
+                                );
                                 loanLimitInquiry.addResult(result);
                                 return result;
                             }
@@ -103,13 +106,16 @@ public class LoanLimitSenderService {
                                     .stream()
                                     .map(product -> {
                                         LoanLimitProductResult productResult =
-                                                LoanLimitProductResult.builder()
-                                                        .loanLimitInquiry(loanLimitInquiry)
-                                                        .loReqtNo(generator.generate("LR")) //신청번호 채번
-                                                        .partnerCode(partnerCode)
-                                                        .productCode(product.getProductCode())
-                                                        .status(PartnerInquiryStatus.PENDING)
-                                                        .build();
+                                                LoanLimitProductResult.create(
+                                                            loanLimitInquiry
+                                                        ,   generator.generate("LR") //신청번호 채번
+                                                        ,   partnerCode
+                                                        ,   product.getProductCode()
+                                                        ,   PartnerInquiryStatus.PENDING
+                                                        ,   null
+                                                        ,   0L
+                                                        ,   0.0
+                                                );
                                         loanLimitInquiry.addProductResult(productResult);
                                         return productResult;
                                     }).toList()
@@ -204,11 +210,11 @@ public class LoanLimitSenderService {
             // 알림 발송 - notification 도메인을 직접 알지 못함
             if(!Objects.equals(InquiryStatus.FAILED, resultStatus)) {
                 // Outbox INSERT (비즈니스 트랜잭션과 원자적)
-                OutboxEvent outboxEvent = OutboxEvent.builder()
-                        .aggregateType("LoanLimitInquiry")
-                        .aggregateId(loanLimitInquiry.getInquiryNo())
-                        .eventType("LOAN_LIMIT_COMPLETED")
-                        .payload(objectMapper.writeValueAsString(
+                OutboxEvent outboxEvent = OutboxEvent.create(
+                            "LoanLimitInquiry"
+                        ,   loanLimitInquiry.getInquiryNo()
+                        ,   "LOAN_LIMIT_COMPLETED"
+                        ,   objectMapper.writeValueAsString(
                                 LoanLimitCompletedEvent.builder()
                                         .inquiryNo(loanLimitInquiry.getInquiryNo())
                                         .userId(loanLimitInquiry.getUserId())
@@ -216,9 +222,11 @@ public class LoanLimitSenderService {
                                         .status(loanLimitInquiry.getStatus())
                                         .requestId(MDC.get(REQUEST_ID_KEY))
                                         .build()
-                        ))
-                        .status(OutboxStatus.PENDING)
-                        .build();
+                                )
+                        ,   OutboxStatus.PENDING
+                        ,   null
+                        ,   0
+                );
 
                 outboxEventRepository.save(outboxEvent);
 

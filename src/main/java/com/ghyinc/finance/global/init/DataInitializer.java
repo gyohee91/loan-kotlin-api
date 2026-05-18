@@ -36,36 +36,41 @@ public class DataInitializer implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) throws Exception {
         List<Partner> initialPartner = List.of(
-                Partner.builder()
-                        .partnerCode(PartnerCode.KAKAO_BANK)
-                        .partnerName(PartnerCode.KAKAO_BANK.getPartnerName())
-                        .partnerType(PartnerType.BANK)
-                        .active(true)
-                        .algorithm(CryptoAlgorithm.AES_256_CBC)
-                        .cryptoKey("wvtX75QJj1Uw1xKqw2kyPOVNBAmDr2vr")
-                        .build(),
-                Partner.builder()
-                        .partnerCode(PartnerCode.TOSS_BANK)
-                        .partnerName(PartnerCode.TOSS_BANK.getPartnerName())
-                        .partnerType(PartnerType.BANK)
-                        .active(true)
-                        .algorithm(CryptoAlgorithm.AES_256_CBC)
-                        .cryptoKey("bd0001eb9404dc257b90547d1343c4de")
-                        .build(),
-                Partner.builder()
-                        .partnerCode(PartnerCode.KB_CAPITAL)
-                        .partnerName(PartnerCode.KB_CAPITAL.getPartnerName())
-                        .partnerType(PartnerType.CAPITAL)
-                        .active(true)
-                        .algorithm(CryptoAlgorithm.RSA_OAEP)
-                        .publicKey("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyxkSWuJRXR27YstInQ+0\n" +
+                Partner.create(
+                            PartnerCode.KAKAO_BANK
+                        ,   PartnerCode.KAKAO_BANK.getPartnerName()
+                        ,   PartnerType.BANK
+                        ,   true
+                        ,   CryptoAlgorithm.AES_256_CBC
+                        ,   "wvtX75QJj1Uw1xKqw2kyPOVNBAmDr2vr"
+                        ,   ""
+                        ,   ""
+                ),
+                Partner.create(
+                            PartnerCode.TOSS_BANK
+                        ,   PartnerCode.TOSS_BANK.getPartnerName()
+                        ,   PartnerType.BANK
+                        ,   true
+                        ,   CryptoAlgorithm.AES_256_CBC
+                        ,   "bd0001eb9404dc257b90547d1343c4de"
+                        ,   ""
+                        ,   ""
+                ),
+                Partner.create(
+                            PartnerCode.KB_CAPITAL
+                        ,   PartnerCode.KB_CAPITAL.getPartnerName()
+                        ,   PartnerType.CAPITAL
+                        ,   true
+                        ,   CryptoAlgorithm.RSA_OAEP
+                        ,   ""
+                        ,   "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyxkSWuJRXR27YstInQ+0\n" +
                                 "Dohwf82TcqvYtCeW1My8wNoBVhArdT9SBGdcU3z4RYEqioRPm4MCoaJBwAlL/wv6\n" +
                                 "Tp3+3ZkDlINrv/cTOxfvRBSB4rd6EVHNT53oXUx7mRFPv0/uOdCyKlELtTcCRriO\n" +
                                 "R9mPHY/b99clKS/NYPvPgNa+H5dhnX08wa4wm3n+N+uAjVtppKWdq+aGPBFyU50q\n" +
                                 "xmVvQV9JcdX25CyNB9djtWt1EfJ2qq1NqTt06ciTwbu3pyDuRLByjB5HtusSRJrj\n" +
                                 "kKZ0MWPgSgfDcvXk4GzA9UBpnYc25cl0L3JTtjeZDSnX4lgeoc7x8x6sxsnvDsXt\n" +
-                                "KQIDAQAB")
-                        .privateKey("MIIEpAIBAAKCAQEAyxkSWuJRXR27YstInQ+0Dohwf82TcqvYtCeW1My8wNoBVhAr\n" +
+                                "KQIDAQAB"
+                        ,   "MIIEpAIBAAKCAQEAyxkSWuJRXR27YstInQ+0Dohwf82TcqvYtCeW1My8wNoBVhAr\n" +
                                 "dT9SBGdcU3z4RYEqioRPm4MCoaJBwAlL/wv6Tp3+3ZkDlINrv/cTOxfvRBSB4rd6\n" +
                                 "EVHNT53oXUx7mRFPv0/uOdCyKlELtTcCRriOR9mPHY/b99clKS/NYPvPgNa+H5dh\n" +
                                 "nX08wa4wm3n+N+uAjVtppKWdq+aGPBFyU50qxmVvQV9JcdX25CyNB9djtWt1EfJ2\n" +
@@ -89,32 +94,38 @@ public class DataInitializer implements ApplicationRunner {
                                 "2W7FzmhKu85T9Qpep+fF8jnzsU8RwR/C2L316WIfShYNtEfciiGmtt3smbGwgMId\n" +
                                 "NPF1rMECgYAoKyRsqnw6HMGvWQanBn7pHhy2Kh3bxdwu/0j+1+5hF17FmGVnvMxE\n" +
                                 "heJWnTHr2tnB4QnauZsCafZmNzl8u52Nds4QKlBLFRLhmQEmsO1EpkE8ZLJu+jwQ\n" +
-                                "gaWmBN05DhJC2NpwBJ/o7lWvGRUgsT6X4LWJaPgVfWpAjjUDT44x5g==")
-                        .build(),
-                Partner.builder()
-                        .partnerCode(PartnerCode.K_BANK)
-                        .partnerName(PartnerCode.K_BANK.getPartnerName())
-                        .partnerType(PartnerType.BANK)
-                        .active(true)
-                        .algorithm(CryptoAlgorithm.AES_256_CBC)
-                        .cryptoKey("AAEGRJuHwTWvrYsaa0V7vAqk+wZuSa2l")
-                        .build(),
-                Partner.builder()
-                        .partnerCode(PartnerCode.LINE_BANK)
-                        .partnerName(PartnerCode.LINE_BANK.getPartnerName())
-                        .partnerType(PartnerType.BANK)
-                        .active(true)
-                        .algorithm(CryptoAlgorithm.AES_256_CBC)
-                        .cryptoKey("AAEGRJuHwTWvrYsaa0V7vAqk+wZuSa2l")
-                        .build(),
-                Partner.builder()
-                        .partnerCode(PartnerCode.SHINHAN_BANK)
-                        .partnerName(PartnerCode.SHINHAN_BANK.getPartnerName())
-                        .partnerType(PartnerType.BANK)
-                        .active(false)
-                        .algorithm(CryptoAlgorithm.AES_256_CBC)
-                        .cryptoKey("AAEGRJuHwTWvrYsaa0V7vAqk+wZuSa2l")
-                        .build()
+                                "gaWmBN05DhJC2NpwBJ/o7lWvGRUgsT6X4LWJaPgVfWpAjjUDT44x5g=="
+                ),
+                Partner.create(
+                            PartnerCode.K_BANK
+                        ,   PartnerCode.K_BANK.getPartnerName()
+                        ,   PartnerType.BANK
+                        ,   true
+                        ,   CryptoAlgorithm.AES_256_CBC
+                        ,   "AAEGRJuHwTWvrYsaa0V7vAqk+wZuSa2l"
+                        ,   ""
+                        ,   ""
+                ),
+                Partner.create(
+                            PartnerCode.LINE_BANK
+                        ,   PartnerCode.LINE_BANK.getPartnerName()
+                        ,   PartnerType.BANK
+                        ,   true
+                        ,   CryptoAlgorithm.AES_256_CBC
+                        ,   "AAEGRJuHwTWvrYsaa0V7vAqk+wZuSa2l"
+                        ,   ""
+                        ,   ""
+                ),
+                Partner.create(
+                            PartnerCode.SHINHAN_BANK
+                        ,   PartnerCode.SHINHAN_BANK.getPartnerName()
+                        ,   PartnerType.BANK
+                        ,   false
+                        ,   CryptoAlgorithm.AES_256_CBC
+                        ,   "AAEGRJuHwTWvrYsaa0V7vAqk+wZuSa2l"
+                        ,   ""
+                        ,   ""
+                )
         );
         partnerRepository.saveAll(initialPartner);
 
@@ -217,11 +228,11 @@ public class DataInitializer implements ApplicationRunner {
         productRepository.saveAll(initialProduct);
 
         List<Member> initialUser = List.of(
-                Member.builder()
-                        .name("윤교희")
-                        .mobile("01056677055")
-                        .email("gyohee91@gmail.com")
-                        .build()
+                Member.create(
+                            "윤교희"
+                        ,   "01056677055"
+                        ,   "gyohee91@gmail.com"
+                )
         );
 
         memberRepository.saveAll(initialUser);

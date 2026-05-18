@@ -79,14 +79,19 @@ class LoanLimitSenderServiceTest {
     }
 
     private LoanLimitInquiry buildInquiry() {
-        return LoanLimitInquiry.builder()
-                .userId(1L)
-                .name("윤교희")
-                .ci("")
-                .jobType(JobType.EMPLOYEE)
-                .jobName("오케이")
-                .loanType(LoanType.PERSONAL_CREDIT)
-                .build();
+        return LoanLimitInquiry.create(
+                    ""
+                ,   1L
+                ,   "윤교희"
+                ,   ""
+                ,   LoanType.PERSONAL_CREDIT
+                ,   JobType.EMPLOYEE
+                ,   "오케이"
+                ,   null
+                ,   null
+                ,   true
+                ,   null
+        );
     }
 
     private Product buildProduct(String productCode) {
@@ -123,12 +128,15 @@ class LoanLimitSenderServiceTest {
         given(objectMapper.writeValueAsString(any()))
                 .willReturn("{\"inquiryNo\":\"LL20260410A3F2C891\"}");
 
-        OutboxEvent savedOutboxEvent = OutboxEvent.builder()
-                .aggregateType("LoanLimitInquiry")
-                .aggregateId("LL20260410A3F2C891")
-                .eventType("LOAN_LIMIT_COMPLETED")
-                .status(OutboxStatus.PENDING)
-                .build();
+        OutboxEvent savedOutboxEvent = OutboxEvent.create(
+                    "LoanLimitInquiry"
+                ,   "LL20260410A3F2C891"
+                ,   "LOAN_LIMIT_COMPLETED"
+                ,   ""
+                ,   OutboxStatus.PENDING
+                ,   null
+                ,   0
+        );
         ReflectionTestUtils.setField(savedOutboxEvent, "id", 1L);
 
         given(outboxEventRepository.save(any(OutboxEvent.class)))

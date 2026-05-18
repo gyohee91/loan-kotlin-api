@@ -1,55 +1,75 @@
-package com.ghyinc.finance.domain.loan.entity;
+package com.ghyinc.finance.domain.loan.entity
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import com.ghyinc.finance.domain.loan.enums.PartnerType;
-import com.ghyinc.finance.global.common.BaseTimeEntity;
-import com.ghyinc.finance.global.crypto.enums.CryptoAlgorithm;
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.Comment;
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import com.ghyinc.finance.domain.loan.enums.PartnerType
+import com.ghyinc.finance.global.common.BaseTimeEntity
+import com.ghyinc.finance.global.crypto.enums.CryptoAlgorithm
+import jakarta.persistence.*
+import org.hibernate.annotations.Comment
 
 @Entity
-@Getter
-@Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-public class Partner extends BaseTimeEntity {
+class Partner : BaseTimeEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    var id: Long? = null
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Comment("제휴사 코드")
-    private PartnerCode partnerCode;
+    var partnerCode: PartnerCode? = null
 
     @Column(nullable = false)
     @Comment("제휴사명")
-    private String partnerName;
+    var partnerName: String? = null
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Comment("제휴사 타입")
-    private PartnerType partnerType;
+    var partnerType: PartnerType? = null
 
     @Column(nullable = false)
     @Comment("활성화 여부")
-    private boolean active;
+    var active = false
 
     @Enumerated(EnumType.STRING)
     @Comment("암호화 알고리즘")
-    private CryptoAlgorithm algorithm;
+    var algorithm: CryptoAlgorithm? = null
 
     @JsonIgnore
     @Comment("암호화키")
-    private String cryptoKey;
+    var cryptoKey: String? = null
 
     @Column(length = 398)
     @Comment("공개키")
-    private String publicKey;
+    var publicKey: String? = null
 
     @Column(length = 1616)
     @Comment("개인키")
-    private String privateKey;
+    var privateKey: String? = null
+
+    companion object {
+        @JvmStatic
+        fun create(
+            partnerCode: PartnerCode,
+            partnerName: String,
+            partnerType: PartnerType,
+            active: Boolean,
+            algorithm: CryptoAlgorithm,
+            cryptoKey: String,
+            publicKey: String,
+            privateKey: String
+        ): Partner {
+            val entity = Partner()
+            entity.partnerCode = partnerCode
+            entity.partnerName = partnerName
+            entity.partnerType = partnerType
+            entity.active = active
+            entity.algorithm = algorithm
+            entity.cryptoKey = cryptoKey
+            entity.publicKey = publicKey
+            entity.privateKey = privateKey
+            return entity
+        }
+    }
 }

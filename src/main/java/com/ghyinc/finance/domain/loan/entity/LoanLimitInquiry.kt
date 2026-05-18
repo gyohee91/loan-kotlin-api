@@ -5,12 +5,18 @@ import com.ghyinc.finance.domain.loan.enums.JobType
 import com.ghyinc.finance.domain.loan.enums.LoanType
 import com.ghyinc.finance.global.common.BaseTimeEntity
 import jakarta.persistence.*
-import lombok.*
 import org.hibernate.annotations.Comment
 import java.time.LocalDateTime
 
 @Entity
-@Table(indexes = [Index(name = "idx_inquiry_user_id_loan_type_status", columnList = "user_id, loan_type, status")])
+@Table(
+    indexes = [
+        Index(
+            name = "idx_inquiry_user_id_loan_type_status",
+            columnList = "user_id, loan_type, status"
+        )
+    ]
+)
 class LoanLimitInquiry: BaseTimeEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -55,7 +61,6 @@ class LoanLimitInquiry: BaseTimeEntity() {
 
     @Enumerated(EnumType.STRING)
     @Comment("응답 결과")
-    @Builder.Default
     var status: InquiryStatus? = InquiryStatus.PENDING
         private set
 

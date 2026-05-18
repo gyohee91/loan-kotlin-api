@@ -1,68 +1,89 @@
-package com.ghyinc.finance.domain.loan.entity;
+package com.ghyinc.finance.domain.loan.entity
 
-import com.ghyinc.finance.domain.loan.enums.LoanLimitResultCode;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import com.ghyinc.finance.domain.loan.enums.PartnerInquiryStatus;
-import com.ghyinc.finance.global.common.BaseTimeEntity;
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.Comment;
+import com.ghyinc.finance.domain.loan.enums.LoanLimitResultCode
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import com.ghyinc.finance.domain.loan.enums.PartnerInquiryStatus
+import com.ghyinc.finance.global.common.BaseTimeEntity
+import jakarta.persistence.*
+import org.hibernate.annotations.Comment
 
 @Entity
-@Getter
-@Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-public class LoanLimitProductResult extends BaseTimeEntity {
+class LoanLimitProductResult : BaseTimeEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    var id: Long? = null
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inquiry_id", nullable = false)
-    private LoanLimitInquiry loanLimitInquiry;
+    var loanLimitInquiry: LoanLimitInquiry? = null
+        private set
 
     @Column(nullable = false, unique = true)
     @Comment("신청번호")
-    private String loReqtNo;
+    var loReqtNo: String? = null
 
     @Enumerated(EnumType.STRING)
     @Comment("금융사 코드")
-    private PartnerCode partnerCode;
+    var partnerCode: PartnerCode? = null
 
     @Comment("상품 코드")
-    private String productCode;
+    var productCode: String? = null
 
     @Enumerated(EnumType.STRING)
     @Comment("상품 처리상태")
-    private PartnerInquiryStatus status;
+    var status: PartnerInquiryStatus? = PartnerInquiryStatus.PENDING
 
     @Enumerated(EnumType.STRING)
     @Comment("한도조회 결과 코드")
-    private LoanLimitResultCode resultCode;
+    var resultCode: LoanLimitResultCode? = null
 
     @Comment("한도금액")
-    private Long amount;
+    var amount: Long? = null
 
     @Comment("금리")
-    private double interestRate;
+    var interestRate = 0.0
 
-    public void updateResult(LoanLimitResultCode resultCode, long amount, double interestRate) {
-        this.status = PartnerInquiryStatus.SUCCESS;
-        this.resultCode = resultCode;
-        this.amount = amount;
-        this.interestRate = interestRate;
+    fun updateResult(resultCode: LoanLimitResultCode?, amount: Long, interestRate: Double) {
+        this.status = PartnerInquiryStatus.SUCCESS
+        this.resultCode = resultCode
+        this.amount = amount
+        this.interestRate = interestRate
     }
 
-    void assignInquiry(LoanLimitInquiry loanLimitInquiry) {
-        this.loanLimitInquiry = loanLimitInquiry;
+    fun assignInquiry(loanLimitInquiry: LoanLimitInquiry?) {
+        this.loanLimitInquiry = loanLimitInquiry
     }
 
-    public void sendSuccess() {
-        this.status = PartnerInquiryStatus.SEND_SUCCESS;
+    fun sendSuccess() {
+        this.status = PartnerInquiryStatus.SEND_SUCCESS
     }
 
-    public void sendFail() {
-        this.status = PartnerInquiryStatus.SEND_FAILED;
+    fun sendFail() {
+        this.status = PartnerInquiryStatus.SEND_FAILED
+    }
+
+    companion object {
+        @JvmStatic
+        fun create(
+            loanLimitInquiry: LoanLimitInquiry,
+            loReqtNo: String,
+            partnerCode: PartnerCode,
+            productCode: String,
+            status: PartnerInquiryStatus,
+            resultCode: LoanLimitResultCode? = null,
+            amount: Long,
+            interestRate: Double
+        ): LoanLimitProductResult {
+            val entity = LoanLimitProductResult()
+            entity.loanLimitInquiry = loanLimitInquiry
+            entity.loReqtNo = loReqtNo
+            entity.partnerCode = partnerCode
+            entity.productCode = productCode
+            entity.status = status
+            entity.resultCode = resultCode
+            entity.amount = amount
+            entity.interestRate = interestRate
+            return entity
+        }
     }
 }

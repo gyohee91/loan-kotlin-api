@@ -37,23 +37,32 @@ class LoanLimitResultServiceTest {
     private LoanLimitProductResultRepository loanLimitProductResultRepository;
 
     private LoanLimitInquiry buildInquiry() {
-        return LoanLimitInquiry.builder()
-                .userId(1L)
-                .name("윤교희")
-                .ci("")
-                .jobType(JobType.EMPLOYEE)
-                .jobName("오케이")
-                .loanType(LoanType.PERSONAL_CREDIT)
-                .build();
+        return LoanLimitInquiry.create(
+                ""
+                ,   1L
+                ,   "윤교희"
+                ,   ""
+                ,   LoanType.PERSONAL_CREDIT
+                ,   JobType.EMPLOYEE
+                ,   "오케이"
+                ,   null
+                ,   null
+                ,   true
+                ,   null
+        );
     }
 
     private LoanLimitProductResult buildProductResult(LoanLimitInquiry inquiry, String loReqtNo, String productCode) {
-        LoanLimitProductResult loanLimitProductResult = LoanLimitProductResult.builder()
-                .loanLimitInquiry(inquiry)
-                .loReqtNo(loReqtNo)
-                .partnerCode(PartnerCode.LINE_BANK)
-                .productCode(productCode)
-                .build();
+        LoanLimitProductResult loanLimitProductResult = LoanLimitProductResult.create(
+                    inquiry
+                ,   loReqtNo
+                ,   PartnerCode.LINE_BANK
+                ,   productCode
+                ,   PartnerInquiryStatus.PENDING
+                ,   null
+                ,   0L
+                ,   0.0
+        );
         // SEND_SUCCESS 상태로 변경 (전송 성공 후 콜백 대기 상태)
         loanLimitProductResult.sendSuccess();
         return loanLimitProductResult;

@@ -1,51 +1,67 @@
-package com.ghyinc.finance.domain.loan.entity;
+package com.ghyinc.finance.domain.loan.entity
 
-import com.ghyinc.finance.domain.loan.enums.InquiryStatus;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.Comment;
+import com.ghyinc.finance.domain.loan.enums.InquiryStatus
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import com.ghyinc.finance.global.common.BaseTimeEntity
+import jakarta.persistence.*
+import org.hibernate.annotations.Comment
 
 @Entity
-@Getter
-@Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-public class LoanLimitResult {
+class LoanLimitResult : BaseTimeEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    var id: Long? = null
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inquiry_id", nullable = false)
-    private LoanLimitInquiry loanLimitInquiry;
+    var loanLimitInquiry: LoanLimitInquiry? = null
+        private set
 
     @Enumerated(EnumType.STRING)
     @Comment("금융사 코드")
-    private PartnerCode partnerCode;
+    var partnerCode: PartnerCode? = null
 
     @Enumerated(EnumType.STRING)
     @Comment("응답 결과")
-    private InquiryStatus status;
+    var status: InquiryStatus? = null
 
     @Comment("실패 사유")
-    private String failReason;
+    var failReason: String? = null
 
     @Comment("응답 시간")
-    private Long resTimeMs;
+    var resTimeMs: Long? = null
 
-    void assignInquiry(LoanLimitInquiry loanLimitInquiry) {
-        this.loanLimitInquiry = loanLimitInquiry;
+    fun assignInquiry(loanLimitInquiry: LoanLimitInquiry?) {
+        this.loanLimitInquiry = loanLimitInquiry
     }
 
-    public void success(long resTimeMs) {
-        this.status = InquiryStatus.SUCCESS;
-        this.resTimeMs = resTimeMs;
+    fun success(resTimeMs: Long) {
+        this.status = InquiryStatus.SUCCESS
+        this.resTimeMs = resTimeMs
     }
 
-    public void fail(String failReason, long resTimeMs) {
-        this.status = InquiryStatus.FAILED;
-        this.failReason = failReason;
-        this.resTimeMs = resTimeMs;
+    fun fail(failReason: String?, resTimeMs: Long) {
+        this.status = InquiryStatus.FAILED
+        this.failReason = failReason
+        this.resTimeMs = resTimeMs
+    }
+
+    companion object {
+        @JvmStatic
+        fun create(
+            loanLimitInquiry: LoanLimitInquiry? = null,
+            partnerCode: PartnerCode,
+            status: InquiryStatus,
+            failReason: String?,
+            resTimeMs: Long
+        ): LoanLimitResult {
+            val entity = LoanLimitResult()
+            entity.loanLimitInquiry = loanLimitInquiry
+            entity.partnerCode = partnerCode
+            entity.status = status
+            entity.failReason = failReason
+            entity.resTimeMs = resTimeMs
+            return entity
+        }
     }
 }

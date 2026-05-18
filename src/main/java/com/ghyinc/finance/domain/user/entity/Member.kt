@@ -1,29 +1,39 @@
-package com.ghyinc.finance.domain.user.entity;
+package com.ghyinc.finance.domain.user.entity
 
-import com.ghyinc.finance.global.common.BaseTimeEntity;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import lombok.*;
-import org.hibernate.annotations.Comment;
+import com.ghyinc.finance.global.common.BaseTimeEntity
+import jakarta.persistence.Entity
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import org.hibernate.annotations.Comment
 
 @Entity
-@Getter
-@Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-public class Member extends BaseTimeEntity {
+class Member : BaseTimeEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long userId;
+    var userId: Long? = null
 
     @Comment("고객명")
-    private String name;
+    var name: String? = null
 
     @Comment("휴대폰번호")
-    private String mobile;
+    var mobile: String? = null
 
     @Comment("이메일주소")
-    private String email;
+    var email: String? = null
+
+    companion object {
+        @JvmStatic
+        fun create(
+            name: String,
+            mobile: String,
+            email: String
+        ): Member {
+            val entity = Member()
+            entity.name = name
+            entity.mobile = mobile
+            entity.email = email
+            return entity
+        }
+    }
 }
