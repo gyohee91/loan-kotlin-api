@@ -1,19 +1,16 @@
-package com.ghyinc.finance.domain.loan.repository;
+package com.ghyinc.finance.domain.loan.repository
 
-import com.ghyinc.finance.domain.loan.entity.Partner;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
-import java.util.Optional;
+import com.ghyinc.finance.domain.loan.entity.Partner
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.repository.query.Param
+import org.springframework.stereotype.Repository
+import java.util.*
 
 @Repository
-public interface PartnerRepository extends JpaRepository<Partner, Long> {
-    @Query("Select t FROM Partner t WHERE t.partnerCode IN :partnerCodes AND t.active = true")
-    List<Partner> findActiveByPartnerCodes(@Param("partnerCodes") List<PartnerCode> partnerCodes);
-
-    Optional<Partner> findByPartnerCodeAndActive(@Param("partnerCode") PartnerCode partnerCode, boolean active);
+interface PartnerRepository : JpaRepository<Partner, Long> {
+    fun findByPartnerCodeAndActive(
+        @Param("partnerCode") partnerCode: PartnerCode,
+        active: Boolean
+    ): Optional<Partner>
 }
