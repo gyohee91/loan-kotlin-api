@@ -14,6 +14,7 @@ import com.ghyinc.finance.domain.loan.enums.PartnerCode;
 import com.ghyinc.finance.domain.loan.factory.LoanLimitAdaptorFactory;
 import com.ghyinc.finance.domain.loan.repository.LoanLimitInquiryRepository;
 import com.ghyinc.finance.domain.loan.repository.ProductRepository;
+import com.ghyinc.finance.global.common.DateUtils;
 import com.ghyinc.finance.global.common.LoReqtNoGenerator;
 import com.ghyinc.finance.global.event.impl.KafkaLoanLimitEventPublisher;
 import com.ghyinc.finance.global.exception.ExternalApiFailException;
@@ -33,6 +34,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -117,13 +119,21 @@ class LoanLimitSenderServiceTest {
         given(adaptor.inquireLimit(eq(PartnerCode.LINE_BANK), any()))
                 .willReturn(LoanLimitAdaptorResponse.success(PartnerCode.LINE_BANK, 100L));
 
-        LoanLimitAdaptorRequest adaptorRequest = LoanLimitAdaptorRequest.builder()
-                .name("윤교희")
-                .rrno("9102131234567")
-                .jobType(JobType.EMPLOYEE)
-                .jobName("오케이")
-                .loanType(LoanType.PERSONAL_CREDIT)
-                .build();
+        LoanLimitAdaptorRequest adaptorRequest = LoanLimitAdaptorRequest.create(
+                "윤교희",
+                "9102131234467",
+                JobType.EMPLOYEE,
+                "오케이",
+                null,
+                LoanType.PERSONAL_CREDIT,
+                null,
+                null,
+                true,
+                DateUtils.toDateTimeString(LocalDateTime.now()),
+                null,
+                null,
+                null
+        );
 
         given(objectMapper.writeValueAsString(any()))
                 .willReturn("{\"inquiryNo\":\"LL20260410A3F2C891\"}");
@@ -181,13 +191,21 @@ class LoanLimitSenderServiceTest {
         given(adaptorFactory.getAdaptor(any())).willReturn(adaptor);
         given(adaptor.inquireLimit(any(), any()))
                 .willThrow(new ExternalApiFailException("한도조회_ERROR", PartnerCode.LINE_BANK + " 4xx 오류"));
-        LoanLimitAdaptorRequest adaptorRequest = LoanLimitAdaptorRequest.builder()
-                .name("윤교희")
-                .rrno("9102131234567")
-                .jobType(JobType.EMPLOYEE)
-                .jobName("오케이")
-                .loanType(LoanType.PERSONAL_CREDIT)
-                .build();
+        LoanLimitAdaptorRequest adaptorRequest = LoanLimitAdaptorRequest.create(
+                "윤교희",
+                "9102131234467",
+                JobType.EMPLOYEE,
+                "오케이",
+                null,
+                LoanType.PERSONAL_CREDIT,
+                null,
+                null,
+                true,
+                DateUtils.toDateTimeString(LocalDateTime.now()),
+                null,
+                null,
+                null
+        );
 
         // when
         loanLimitSenderService.inquiry(1L, List.of(PartnerCode.LINE_BANK), adaptorRequest);
@@ -215,13 +233,21 @@ class LoanLimitSenderServiceTest {
         given(adaptor.inquireLimit(any(), any()))
                 .willReturn(LoanLimitAdaptorResponse.success(PartnerCode.LINE_BANK, 100L));
 
-        LoanLimitAdaptorRequest adaptorRequest = LoanLimitAdaptorRequest.builder()
-                .name("윤교희")
-                .rrno("9102131234567")
-                .jobType(JobType.EMPLOYEE)
-                .jobName("오케이")
-                .loanType(LoanType.PERSONAL_CREDIT)
-                .build();
+        LoanLimitAdaptorRequest adaptorRequest = LoanLimitAdaptorRequest.create(
+                "윤교희",
+                "9102131234467",
+                JobType.EMPLOYEE,
+                "오케이",
+                null,
+                LoanType.PERSONAL_CREDIT,
+                null,
+                null,
+                true,
+                DateUtils.toDateTimeString(LocalDateTime.now()),
+                null,
+                null,
+                null
+        );
 
         // when
         loanLimitSenderService.inquiry(1L, List.of(PartnerCode.LINE_BANK), adaptorRequest);

@@ -62,15 +62,15 @@ public class CommonLoanLimitAdaptor implements LoanLimitAdaptor {
 
         try {
             CommonLimitRequest request = CommonLimitRequest.builder()
-                    .requestProducts(requestParam.requestProducts())
-                    .rrn(cryptoService.encrypt(requestParam.rrno()))
-                    .name(cryptoService.encrypt(requestParam.name()))
-                    .jobType(requestParam.jobType())
-                    .jobName(requestParam.jobName())
-                    .joinDate(requestParam.joinDate())
-                    .carNo(requestParam.carNo())
-                    .autoInfo(requestParam.autoInfo())
-                    .autoSecondInfo(requestParam.autoSecondInfo())
+                    .requestProducts(requestParam.getRequestProducts())
+                    .rrn(cryptoService.encrypt(requestParam.getRrno()))
+                    .name(cryptoService.encrypt(requestParam.getName()))
+                    .jobType(requestParam.getJobType())
+                    .jobName(requestParam.getJobName())
+                    .joinDate(requestParam.getJoinDate())
+                    .carNo(requestParam.getCarNo())
+                    .autoInfo(requestParam.getAutoInfo())
+                    .autoSecondInfo(requestParam.getAutoSecondInfo())
                     .build();
 
             CommonLimitResponse result = apiClient.post(

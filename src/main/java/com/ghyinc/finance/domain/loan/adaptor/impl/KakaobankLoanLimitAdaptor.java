@@ -62,9 +62,9 @@ public class KakaobankLoanLimitAdaptor implements LoanLimitAdaptor {
     ) {
         public static CustInputInfo from(LoanLimitAdaptorRequest requestParam) {
             return CustInputInfo.builder()
-                    .ocupDvcd(requestParam.jobType().name())
-                    .curWrstNm(requestParam.jobName())
-                    .curWrstEncm(requestParam.joinDate())
+                    .ocupDvcd(requestParam.getLoanType().name())
+                    .curWrstNm(requestParam.getJobName())
+                    .curWrstEncm(requestParam.getJoinDate())
                     .build();
         }
     }
@@ -117,7 +117,7 @@ public class KakaobankLoanLimitAdaptor implements LoanLimitAdaptor {
         try {
             KakaobankLimitRequest request = KakaobankLimitRequest.builder()
                     .alncGdsInfos(
-                            requestParam.requestProducts().stream()
+                            requestParam.getRequestProducts().stream()
                                     .map(
                                             requestProduct -> AlncGdsInfo.builder()
                                                     .iqryDmanNo(requestProduct.getLoReqtNo())
@@ -126,11 +126,11 @@ public class KakaobankLoanLimitAdaptor implements LoanLimitAdaptor {
                                     )
                                     .toList()
                     )
-                    .rsdtNo(cryptoService.encrypt(requestParam.rrno()))
-                    .custNm(cryptoService.encrypt(requestParam.name()))
+                    .rsdtNo(cryptoService.encrypt(requestParam.getRrno()))
+                    .custNm(cryptoService.encrypt(requestParam.getName()))
                     .custInputInfo(CustInputInfo.from(requestParam))
-                    .vhcNo(requestParam.carNo())
-                    .carParts(CarParts.from(requestParam.autoInfo()))
+                    .vhcNo(requestParam.getCarNo())
+                    .carParts(CarParts.from(requestParam.getAutoInfo()))
                     .build();
 
             LimitResponse result = apiClient.post(

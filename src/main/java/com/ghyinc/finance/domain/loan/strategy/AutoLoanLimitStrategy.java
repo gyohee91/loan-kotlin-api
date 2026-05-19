@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.errors.InvalidRequestException;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -67,19 +68,21 @@ public class AutoLoanLimitStrategy implements LoanLimitStrategy{
     @Override
     public LoanLimitAdaptorRequest toAdaptorRequest(LoanLimitRequest request, ExternalDataContext externalDataContext) {
         NiceDnrResult result = externalDataContext.niceDnrResult();
-        return LoanLimitAdaptorRequest.builder()
-                .name(request.name())
-                .rrno(request.rrno())
-                .jobType(request.jobType())
-                .jobName(request.jobName())
-                .joinDate(request.joinDate())
-                .loanType(request.loanType())
-                .carNo(request.carNo())
-                .agreePersonalCreditInfo(request.agreePersonalCreditInfo())
-                .agreePersonalCreditTime(DateUtils.toDateTimeString(request.agreePersonalCreditTime()))
-                .autoInfo(result.autoInfo())
-                .autoSecondInfo(result.autoSecondInfo())
-                .build();
+        return LoanLimitAdaptorRequest.create(
+                request.name(),
+                request.rrno(),
+                request.jobType(),
+                request.jobName(),
+                request.joinDate(),
+                request.loanType(),
+                request.carNo(),
+                "",
+                request.agreePersonalCreditInfo(),
+                DateUtils.toDateTimeString(request.agreePersonalCreditTime()),
+                result.autoInfo(),
+                result.autoSecondInfo(),
+                null
+        );
     }
 
     @Override

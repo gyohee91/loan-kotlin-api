@@ -39,16 +39,21 @@ public class PersonalLoanLimitStrategy implements LoanLimitStrategy {
 
     @Override
     public LoanLimitAdaptorRequest toAdaptorRequest(LoanLimitRequest request, ExternalDataContext externalDataContext) {
-        return LoanLimitAdaptorRequest.builder()
-                .name(request.name())
-                .rrno(request.rrno())
-                .jobType(request.jobType())
-                .jobName(request.jobName())
-                .joinDate(request.joinDate())
-                .loanType(request.loanType())
-                .agreePersonalCreditInfo(request.agreePersonalCreditInfo())
-                .agreePersonalCreditTime(DateUtils.toDateTimeString(request.agreePersonalCreditTime()))
-                .build();
+        return LoanLimitAdaptorRequest.create(
+                request.name(),
+                request.rrno(),
+                request.jobType(),
+                request.jobName(),
+                request.joinDate(),
+                request.loanType(),
+                null,
+                null,
+                request.agreePersonalCreditInfo(),
+                DateUtils.toDateTimeString(request.agreePersonalCreditTime()),
+                null,
+                null,
+                null
+        );
     }
 
     @Override

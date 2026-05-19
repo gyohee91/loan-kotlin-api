@@ -68,18 +68,21 @@ public class MorgageLoanLimitStrategy implements LoanLimitStrategy {
     @Override
     public LoanLimitAdaptorRequest toAdaptorRequest(LoanLimitRequest request, ExternalDataContext externalDataContext) {
         KbAppraisalResult result = externalDataContext.kbAppraisalResult();
-        return LoanLimitAdaptorRequest.builder()
-                .name(request.name())
-                .rrno(request.rrno())
-                .jobType(request.jobType())
-                .jobName(request.jobName())
-                .joinDate(request.joinDate())
-                .loanType(request.loanType())
-                .agreePersonalCreditInfo(request.agreePersonalCreditInfo())
-                .agreePersonalCreditTime(DateUtils.toDateTimeString(request.agreePersonalCreditTime()))
-                .address(request.address())
-                .respData(result.respData())
-                .build();
+        return LoanLimitAdaptorRequest.create(
+                request.name(),
+                request.rrno(),
+                request.jobType(),
+                request.jobName(),
+                request.joinDate(),
+                request.loanType(),
+                request.carNo(),
+                request.address(),
+                request.agreePersonalCreditInfo(),
+                DateUtils.toDateTimeString(request.agreePersonalCreditTime()),
+                null,
+                null,
+                result.respData()
+        );
     }
 
     @Override

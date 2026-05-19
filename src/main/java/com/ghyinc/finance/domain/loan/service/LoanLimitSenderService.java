@@ -102,7 +102,7 @@ public class LoanLimitSenderService {
             Map<PartnerCode, List<LoanLimitProductResult>> productResultMap = partnerCodes.stream()
                     .collect(Collectors.toMap(
                             partnerCode -> partnerCode,
-                            partnerCode -> productRepository.findActiveByPartnerCodeAndLoanType(partnerCode, adaptorRequest.loanType())
+                            partnerCode -> productRepository.findActiveByPartnerCodeAndLoanType(partnerCode, adaptorRequest.getLoanType())
                                     .stream()
                                     .map(product -> {
                                         LoanLimitProductResult productResult =
@@ -146,9 +146,8 @@ public class LoanLimitSenderService {
             var futures = partnerCodes.stream()
                     .map(partnerCode -> {
                         //requestProducts를 포함한 요청 DTO 재구성
-                        LoanLimitAdaptorRequest adaptorRequests = adaptorRequest.toBuilder()
-                                .requestProducts(requestProductMap.get(partnerCode))
-                                .build();
+                        LoanLimitAdaptorRequest adaptorRequests =
+                                adaptorRequest.withRequestProducts(requestProductMap.get(partnerCode));
 
                         LoanLimitAdaptor adaptor = adaptorFactory.getAdaptor(partnerCode);
                         return CompletableFuture
@@ -179,20 +178,20 @@ public class LoanLimitSenderService {
 
             // 어댑터 응답을 후처리하고 Entity로 변환하여 저장
             adaptorResponses.forEach(adaptorResponse -> {
-                LoanLimitResult result = resultMap.get(adaptorResponse.partnerCode());
+                LoanLimitResult result = resultMap.get(adaptorResponse.getPartnerCode());
 
-                    if(adaptorResponse.success()) {
-                        result.success(adaptorResponse.resTimeMs());
-                        productResultMap.get(adaptorResponse.partnerCode())
+                    if(adaptorResponse.getSuccess()) {
+                        result.success(adaptorResponse.getResTimeMs());
+                        productResultMap.get(adaptorResponse.getPartnerCode())
                                 .forEach(LoanLimitProductResult::sendSuccess);
                     }
                     else {
                         result.fail(
-                                adaptorResponse.failReason(),
-                                adaptorResponse.resTimeMs()
+                                adaptorResponse.getFailReason(),
+                                adaptorResponse.getResTimeMs()
                         );
 
-                        productResultMap.get(adaptorResponse.partnerCode())
+                        productResultMap.get(adaptorResponse.getPartnerCode())
                                 .forEach(LoanLimitProductResult::sendFail);
                     }
 
@@ -200,7 +199,7 @@ public class LoanLimitSenderService {
 
             // 최종 상태 결정
             long successCount = adaptorResponses.stream()
-                    .filter(LoanLimitAdaptorResponse::success).count();
+                    .filter(LoanLimitAdaptorResponse::getSuccess).count();
             InquiryStatus resultStatus = successCount == adaptorResponses.size()
                     ? InquiryStatus.SUCCESS
                     : (successCount == 0 ? InquiryStatus.FAILED : InquiryStatus.PARTIAL_SUCCESS);

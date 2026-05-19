@@ -1,37 +1,38 @@
-package com.ghyinc.finance.domain.loan.adaptor.dto;
+package com.ghyinc.finance.domain.loan.adaptor.dto
 
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import lombok.Builder;
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import lombok.Builder
 
-@Builder
-public record LoanLimitAdaptorResponse(
-        PartnerCode partnerCode,
-        boolean success,
-        String failReason,
-        long resTimeMs
+data class LoanLimitAdaptorResponse(
+    val partnerCode: PartnerCode,
+    val success: Boolean,
+    val failReason: String? = null,
+    val resTimeMs: Long? = null
 ) {
-    public static LoanLimitAdaptorResponse success(
-            PartnerCode partnerCode,
-            long resTimeMs
-    ) {
-        return LoanLimitAdaptorResponse.builder()
-                .partnerCode(partnerCode)
-                .success(true)
-                .failReason(null)
-                .resTimeMs(resTimeMs)
-                .build();
-    }
+    companion object {
+        @JvmStatic
+        fun success(
+            partnerCode: PartnerCode,
+            resTimeMs: Long? = null
+        ): LoanLimitAdaptorResponse =
+            LoanLimitAdaptorResponse(
+                partnerCode = partnerCode,
+                success = true,
+                failReason = null,
+                resTimeMs = resTimeMs
+            )
 
-    public static LoanLimitAdaptorResponse fail(
-            PartnerCode partnerCode,
-            String failReason,
-            long resTimeMs
-    ) {
-        return LoanLimitAdaptorResponse.builder()
-                .partnerCode(partnerCode)
-                .success(false)
-                .failReason(failReason)
-                .resTimeMs(resTimeMs)
-                .build();
+        @JvmStatic
+        fun fail(
+            partnerCode: PartnerCode,
+            failReason: String,
+            resTimeMs: Long? = null
+        ): LoanLimitAdaptorResponse =
+            LoanLimitAdaptorResponse(
+                partnerCode = partnerCode,
+                success = false,
+                failReason = failReason,
+                resTimeMs = resTimeMs
+            )
     }
 }
