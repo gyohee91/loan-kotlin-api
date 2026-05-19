@@ -1,22 +1,22 @@
-package com.ghyinc.finance.domain.loan.dto;
+package com.ghyinc.finance.domain.loan.dto
 
-import com.ghyinc.finance.domain.loan.entity.LoanLimitInquiry;
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Builder;
+import com.ghyinc.finance.domain.loan.entity.LoanLimitInquiry
+import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(description = "금리 한도조회 (응답)")
-@Builder
-public record LoanLimitInquiryResponse(
-        @Schema(description = "업무 식별번호")
-        String inquiryNo,
+data class LoanLimitInquiryResponse(
+    @field:Schema(description = "업무 식별번호")
+    val inquiryNo: String? = null,
 
-        @Schema(description = "성공 여부")
-        boolean success
+    @field:Schema(description = "성공 여부")
+    val success: Boolean = false
 ) {
-    public static LoanLimitInquiryResponse from(LoanLimitInquiry inquiry) {
-        return LoanLimitInquiryResponse.builder()
-                .inquiryNo(inquiry.getInquiryNo())
-                .success(true)
-                .build();
+    companion object {
+        @JvmStatic
+        fun from(inquiry: LoanLimitInquiry): LoanLimitInquiryResponse =
+            LoanLimitInquiryResponse(
+                inquiryNo = inquiry.inquiryNo,
+                success = true
+            )
     }
 }

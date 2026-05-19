@@ -56,19 +56,19 @@ public class LinebankResultAdaptor implements LoanLimitResultAdaptor {
 
         List<LoanLimitResultRequest.LoanApplyResult> preScreeningResult =
                 linebankResultRequest.preScreeningResult().stream()
-                        .map(item -> LoanLimitResultRequest.LoanApplyResult.builder()
-                                .resultCode(RESULT_CODE_MAP.getOrDefault(item.result(), LoanLimitResultCode.UNKNOWN_ERROR))
-                                .loReqtNo(item.ticketId())
-                                .productCode(item.loanProductId())
-                                .interestRate(Double.parseDouble(item.interestRate))
-                                .amount(Long.parseLong(item.amount()))
-                                .build())
+                        .map(item ->
+                                        LoanLimitResultRequest.LoanApplyResult.create(
+                                                item.ticketId(),
+                                                item.loanProductId(),
+                                                RESULT_CODE_MAP.getOrDefault(item.result(), LoanLimitResultCode.UNKNOWN_ERROR),
+                                                Long.parseLong(item.amount()),
+                                                Double.parseDouble(item.interestRate())
+                                        )
+                        )
                         .toList();
 
 
-        return LoanLimitResultRequest.builder()
-                .loanApplyResults(preScreeningResult)
-                .build();
+        return LoanLimitResultRequest.create(preScreeningResult);
     }
 
     @Override

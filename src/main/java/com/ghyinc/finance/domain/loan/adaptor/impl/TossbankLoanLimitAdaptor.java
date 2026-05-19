@@ -99,8 +99,8 @@ public class TossbankLoanLimitAdaptor implements LoanLimitAdaptor {
                     .requestProducts(
                             requestParam.requestProducts().stream()
                                     .map(requestProduct -> RequestProduct.builder()
-                                            .loanReqNo(requestProduct.loReqtNo())
-                                            .loanProductId(requestProduct.productCode())
+                                            .loanReqNo(requestProduct.getLoReqtNo())
+                                            .loanProductId(requestProduct.getProductCode())
                                             .build()
                                     )
                                     .toList()

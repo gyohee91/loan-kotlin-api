@@ -1,31 +1,45 @@
-package com.ghyinc.finance.domain.loan.dto;
+package com.ghyinc.finance.domain.loan.dto
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.ghyinc.finance.domain.loan.enums.LoanLimitResultCode;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.ghyinc.finance.domain.loan.enums.LoanLimitResultCode
 
-import java.util.List;
+class LoanLimitResultRequest(
+    @field:JsonProperty("loanApplyResults")
+    val loanApplyResults: List<LoanApplyResult> = emptyList()
+) {
+    class LoanApplyResult(
+        val loReqtNo: String,
+        val productCode: String,
+        val resultCode: LoanLimitResultCode,
+        val amount: Long? = null,
+        val interestRate: Double? = null,
+    ) {
+        companion object {
+            @JvmStatic
+            fun create(
+                loReqtNo: String,
+                productCode: String,
+                resultCode: LoanLimitResultCode,
+                amount: Long? = null,
+                interestRate: Double? = null
+            ): LoanApplyResult =
+                LoanApplyResult(
+                    loReqtNo = loReqtNo,
+                    productCode = productCode,
+                    resultCode = resultCode,
+                    amount = amount,
+                    interestRate = interestRate
+                )
+        }
+    }
 
-@Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class LoanLimitResultRequest {
-    @JsonProperty("loanApplyResults")
-    private List<LoanApplyResult> loanApplyResults;
-
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class LoanApplyResult {
-        private String loReqtNo;
-        private String productCode;
-        private LoanLimitResultCode resultCode;
-        private Long amount;
-        private Double interestRate;
+    companion object {
+        @JvmStatic
+        fun create(
+            loanApplyResults: List<LoanApplyResult>
+        ): LoanLimitResultRequest =
+            LoanLimitResultRequest(
+                loanApplyResults = loanApplyResults
+            )
     }
 }

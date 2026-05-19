@@ -1,23 +1,25 @@
-package com.ghyinc.finance.domain.loan.dto;
+package com.ghyinc.finance.domain.loan.dto
 
-import lombok.Builder;
+import lombok.Builder
 
 @Builder
-public record LoanLimitResultResponse(
-        String resultCode,
-        String resultMessage
-) implements ResultResponse {
+@JvmRecord
+data class LoanLimitResultResponse(
+    val resultCode: String,
+    val resultMessage: String? = null
+) : ResultResponse {
+    companion object {
+        @JvmStatic
+        fun success(): LoanLimitResultResponse =
+            LoanLimitResultResponse(
+                resultCode = "SUCCESS"
+            )
 
-    public static LoanLimitResultResponse success() {
-        return LoanLimitResultResponse.builder()
-                .resultCode("SUCCESS")
-                .build();
-    }
-
-    public static LoanLimitResultResponse fail(String resultMessage) {
-        return LoanLimitResultResponse.builder()
-                .resultCode("FAIL")
-                .resultMessage(resultMessage)
-                .build();
+        @JvmStatic
+        fun fail(resultMessage: String?): LoanLimitResultResponse =
+            LoanLimitResultResponse(
+                resultCode = "FAIL",
+                resultMessage = resultMessage
+            )
     }
 }

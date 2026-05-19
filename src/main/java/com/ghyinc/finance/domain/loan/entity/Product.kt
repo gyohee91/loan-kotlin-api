@@ -29,10 +29,10 @@ class Product : BaseTimeEntity() {
     var loanType: LoanType? = null
 
     @Comment("상품코드")
-    var productCode: String? = null
+    var productCode: String = ""
 
     @Comment("상품명")
-    var productName: String? = null
+    var productName: String = ""
 
     @Column(nullable = false)
     @Comment("활성화 여부")

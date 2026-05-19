@@ -69,27 +69,23 @@ class LoanLimitResultServiceTest {
     }
 
     private LoanLimitResultRequest.LoanApplyResult buildSuccessItem(String loReqtNo, String productCode) {
-        return LoanLimitResultRequest.LoanApplyResult.builder()
-                .loReqtNo(loReqtNo)
-                .productCode(productCode)
-                .resultCode(LoanLimitResultCode.SUCCESS)
-                .amount(30_000_000L)
-                .interestRate(4.5)
-                .build();
+        return LoanLimitResultRequest.LoanApplyResult.create(
+                loReqtNo,
+                productCode,
+                LoanLimitResultCode.SUCCESS,
+                30_000_000L,
+                4.5
+        );
     }
 
     private JsonNode buildRequest(List<LoanLimitResultRequest.LoanApplyResult> items) {
         ObjectMapper objectMapper = new ObjectMapper();
-        LoanLimitResultRequest request = LoanLimitResultRequest.builder()
-                .loanApplyResults(items)
-                .build();
+        LoanLimitResultRequest request = LoanLimitResultRequest.create(items);
         return objectMapper.valueToTree(request);
     }
 
     private LoanLimitResultRequest buildRequestDto(List<LoanLimitResultRequest.LoanApplyResult> items) {
-        return LoanLimitResultRequest.builder()
-                .loanApplyResults(items)
-                .build();
+        return LoanLimitResultRequest.create(items);
     }
 
     @Test

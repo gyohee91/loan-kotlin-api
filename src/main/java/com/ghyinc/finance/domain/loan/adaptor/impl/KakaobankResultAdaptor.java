@@ -61,18 +61,18 @@ public class KakaobankResultAdaptor implements LoanLimitResultAdaptor {
         KakaobankResultRequest kakaobankRequest = objectMapper.convertValue(body, KakaobankResultRequest.class);
 
         List<LoanLimitResultRequest.LoanApplyResult> preScrResultLists = kakaobankRequest.products().stream()
-                .map(item -> LoanLimitResultRequest.LoanApplyResult.builder()
-                        .loReqtNo(item.iqryDmanNo)
-                        .productCode(item.alncGdsUnqCd)
-                        .resultCode(RESULT_CODE_MAP.getOrDefault(item.rsltCd, LoanLimitResultCode.UNKNOWN_ERROR))
-                        .amount(item.loanLimitAmt)
-                        .interestRate(item.lastLoanIntr)
-                        .build())
+                .map(item ->
+                        LoanLimitResultRequest.LoanApplyResult.create(
+                                item.iqryDmanNo,
+                                item.alncGdsUnqCd,
+                                RESULT_CODE_MAP.getOrDefault(item.rsltCd, LoanLimitResultCode.UNKNOWN_ERROR),
+                                item.loanLimitAmt,
+                                item.lastLoanIntr
+                        )
+                )
                 .toList();
 
-        return LoanLimitResultRequest.builder()
-                .loanApplyResults(preScrResultLists)
-                .build();
+        return LoanLimitResultRequest.create(preScrResultLists);
     }
 
     @Override

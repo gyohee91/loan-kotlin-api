@@ -20,14 +20,14 @@ class LoanLimitProductResult : BaseTimeEntity() {
 
     @Column(nullable = false, unique = true)
     @Comment("신청번호")
-    var loReqtNo: String? = null
+    var loReqtNo: String = ""
 
     @Enumerated(EnumType.STRING)
     @Comment("금융사 코드")
     var partnerCode: PartnerCode? = null
 
     @Comment("상품 코드")
-    var productCode: String? = null
+    var productCode: String = ""
 
     @Enumerated(EnumType.STRING)
     @Comment("상품 처리상태")

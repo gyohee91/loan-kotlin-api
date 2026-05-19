@@ -85,8 +85,8 @@ public class LinebankLoanLimitAdaptor implements LoanLimitAdaptor {
                     .requestProducts(
                             requestParam.requestProducts().stream()
                                     .map(requestProduct -> RequestProduct.builder()
-                                            .ticketId(requestProduct.loReqtNo())
-                                            .loanProductId(requestProduct.productCode())
+                                            .ticketId(requestProduct.getLoReqtNo())
+                                            .loanProductId(requestProduct.getProductCode())
                                             .build()
                                     )
                                     .toList()

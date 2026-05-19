@@ -37,13 +37,15 @@ class OutboxEventServiceTest {
     private KafkaTemplate<String, String> kafkaTemplate;
 
     private OutboxEvent buildPendingOutboxEvent() {
-        OutboxEvent event = OutboxEvent.builder()
-                .aggregateType("LoanLimitInquiry")
-                .aggregateId("LL20260410A3F2C891")
-                .eventType("LOAN_LIMIT_COMPLETED")
-                .payload("{\"inquiryNo\":\"LL20260410A3F2C891\"}")
-                .status(OutboxStatus.PENDING)
-                .build();
+        OutboxEvent event = OutboxEvent.create(
+                "LoanLimitInquiry",
+                "LL20260410A3F2C891",
+                "LOAN_LIMIT_COMPLETED",
+                "{\"inquiryNo\":\"LL20260410A3F2C891\"}",
+                OutboxStatus.PENDING,
+                null,
+                0
+        );
         ReflectionTestUtils.setField(event, "id", 1L);
         return event;
     }

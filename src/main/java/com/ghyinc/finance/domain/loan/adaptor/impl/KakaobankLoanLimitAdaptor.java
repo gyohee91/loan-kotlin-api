@@ -120,8 +120,8 @@ public class KakaobankLoanLimitAdaptor implements LoanLimitAdaptor {
                             requestParam.requestProducts().stream()
                                     .map(
                                             requestProduct -> AlncGdsInfo.builder()
-                                                    .iqryDmanNo(requestProduct.loReqtNo())
-                                                    .alncGdsUnqCd(requestProduct.productCode())
+                                                    .iqryDmanNo(requestProduct.getLoReqtNo())
+                                                    .alncGdsUnqCd(requestProduct.getProductCode())
                                                     .build()
                                     )
                                     .toList()

@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -57,15 +58,17 @@ class LoanLimitServiceTest {
     @DisplayName("한도조회 요청 정상처리 - 202 Accepted 즉시 응답")
     void requestCompareLoan_success() {
         // given
-        LoanLimitRequest request = LoanLimitRequest.builder()
-                .userId(1L)
-                .name("윤교희")
-                .rrno("9102131234556")
-                .ci("wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH")
-                .jobType(JobType.EMPLOYEE)
-                .jobName("오케이")
-                .loanType(LoanType.PERSONAL_CREDIT)
-                .build();
+        LoanLimitRequest request = LoanLimitRequest.create(
+                1L,
+                "윤교희",
+                "9102131234556",
+                "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
+                JobType.EMPLOYEE,
+                "오케이",
+                LoanType.PERSONAL_CREDIT,
+                true,
+                LocalDateTime.now()
+        );
 
         LoanLimitStrategy strategy = mock(LoanLimitStrategy.class);
         given(strategyFactory.getStrategy(LoanType.PERSONAL_CREDIT)).willReturn(strategy);
@@ -86,7 +89,7 @@ class LoanLimitServiceTest {
         LoanLimitInquiryResponse response = loanLimitService.requestCompareLoan(request);
 
         // then
-        assertThat(response.success()).isEqualTo(true);
+        assertThat(response.getSuccess()).isEqualTo(true);
 
         then(loanLimitInquiryRepository).should().save(any(LoanLimitInquiry.class));
         then(loanLimitSenderService).should().inquiry(anyLong(), anyList(), any());
@@ -96,15 +99,17 @@ class LoanLimitServiceTest {
     @DisplayName("활성화된 금융사가 없으면 InvalidRequestException 발생")
     void requestCompareLoan_noActivePartner_throwException() {
         // given
-        LoanLimitRequest request = LoanLimitRequest.builder()
-                .userId(1L)
-                .name("윤교희")
-                .rrno("9102131234556")
-                .ci("wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH")
-                .jobType(JobType.EMPLOYEE)
-                .jobName("오케이")
-                .loanType(LoanType.PERSONAL_CREDIT)
-                .build();
+        LoanLimitRequest request = LoanLimitRequest.create(
+                1L,
+                "윤교희",
+                "9102131234556",
+                "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
+                JobType.EMPLOYEE,
+                "오케이",
+                LoanType.PERSONAL_CREDIT,
+                true,
+                LocalDateTime.now()
+        );
         LoanLimitStrategy strategy = mock(LoanLimitStrategy.class);
         given(strategyFactory.getStrategy(LoanType.PERSONAL_CREDIT)).willReturn(strategy);
         given(strategy.requiresExternalData()).willReturn(false);
@@ -121,15 +126,17 @@ class LoanLimitServiceTest {
     @DisplayName("진행 중인 한도조회 요청이 있으면 중복 요청 방지")
     void requestCompareLoan_inProgressExists_throwsException() {
         // given
-        LoanLimitRequest request = LoanLimitRequest.builder()
-                .userId(1L)
-                .name("윤교희")
-                .rrno("9102131234556")
-                .ci("wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH")
-                .jobType(JobType.EMPLOYEE)
-                .jobName("오케이")
-                .loanType(LoanType.PERSONAL_CREDIT)
-                .build();
+        LoanLimitRequest request = LoanLimitRequest.create(
+                1L,
+                "윤교희",
+                "9102131234556",
+                "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
+                JobType.EMPLOYEE,
+                "오케이",
+                LoanType.PERSONAL_CREDIT,
+                true,
+                LocalDateTime.now()
+        );
         
         LoanLimitStrategy strategy = mock(LoanLimitStrategy.class);
         //given(strategyFactory.getStrategy(any())).willReturn(strategy);
@@ -147,15 +154,17 @@ class LoanLimitServiceTest {
     @DisplayName("오토담보 - Nice DNR 조회 성공 시 정상 처리")
     void requestCompareLoan_auto_niceDnrSuccess() {
         // given
-        LoanLimitRequest request = LoanLimitRequest.builder()
-                .userId(1L)
-                .name("윤교희")
-                .rrno("9102131234556")
-                .ci("wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH")
-                .jobType(JobType.EMPLOYEE)
-                .jobName("오케이")
-                .loanType(LoanType.AUTO)
-                .build();
+        LoanLimitRequest request = LoanLimitRequest.create(
+                1L,
+                "윤교희",
+                "9102131234556",
+                "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
+                JobType.EMPLOYEE,
+                "오케이",
+                LoanType.AUTO,
+                true,
+                LocalDateTime.now()
+        );
         LoanLimitStrategy strategy = mock(LoanLimitStrategy.class);
         given(strategyFactory.getStrategy(any())).willReturn(strategy);
         given(strategy.requiresExternalData()).willReturn(true);
@@ -176,7 +185,7 @@ class LoanLimitServiceTest {
         LoanLimitInquiryResponse response = loanLimitService.requestCompareLoan(request);
 
         // then
-        assertThat(response.success()).isEqualTo(true);
+        assertThat(response.getSuccess()).isEqualTo(true);
 
         then(loanLimitInquiryRepository).should().save(any(LoanLimitInquiry.class));
         then(loanLimitSenderService).should().inquiry(anyLong(), anyList(), any());
@@ -186,15 +195,17 @@ class LoanLimitServiceTest {
     @DisplayName("오토담보 - Nice DNR 조회 실패 시 진행 가능 금융사 없으면 예외")
     void requestCompareLoan_auto_niceDnrFailed_throwException() {
         // given
-        LoanLimitRequest request = LoanLimitRequest.builder()
-                .userId(1L)
-                .name("윤교희")
-                .rrno("9102131234556")
-                .ci("wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH")
-                .jobType(JobType.EMPLOYEE)
-                .jobName("오케이")
-                .loanType(LoanType.AUTO)
-                .build();
+        LoanLimitRequest request = LoanLimitRequest.create(
+                1L,
+                "윤교희",
+                "9102131234556",
+                "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
+                JobType.EMPLOYEE,
+                "오케이",
+                LoanType.AUTO,
+                true,
+                LocalDateTime.now()
+        );
         LoanLimitStrategy strategy = mock(LoanLimitStrategy.class);
         given(strategyFactory.getStrategy(any())).willReturn(strategy);
         given(strategy.requiresExternalData()).willReturn(true);

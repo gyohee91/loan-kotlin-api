@@ -56,18 +56,18 @@ public class TossbankResultAdaptor implements LoanLimitResultAdaptor {
 
         List<LoanLimitResultRequest.LoanApplyResult> preScrResultLists =
                 tossbankRequest.preScreeningResult().stream()
-                        .map(item -> LoanLimitResultRequest.LoanApplyResult.builder()
-                                .loReqtNo(item.loanReqNo)
-                                .productCode(item.loanProductId)
-                                .resultCode(RESULT_CODE_MAP.getOrDefault(item.result, LoanLimitResultCode.UNKNOWN_ERROR))
-                                .amount(item.amount)
-                                .interestRate(item.interestRate)
-                                .build())
+                        .map(item ->
+                                LoanLimitResultRequest.LoanApplyResult.create(
+                                        item.loanReqNo,
+                                        item.loanProductId,
+                                        RESULT_CODE_MAP.getOrDefault(item.result, LoanLimitResultCode.UNKNOWN_ERROR),
+                                        item.amount,
+                                        item.interestRate
+                                )
+                        )
                         .toList();
 
-        return LoanLimitResultRequest.builder()
-                .loanApplyResults(preScrResultLists)
-                .build();
+        return LoanLimitResultRequest.create(preScrResultLists);
     }
 
     @Override

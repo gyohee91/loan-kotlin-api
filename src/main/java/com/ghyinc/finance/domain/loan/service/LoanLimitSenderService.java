@@ -133,10 +133,10 @@ public class LoanLimitSenderService {
                             Map.Entry::getKey,
                             entry -> entry.getValue().stream()
                                     .map(productResult ->
-                                            RequestProduct.builder()
-                                                    .loReqtNo(productResult.getLoReqtNo())
-                                                    .productCode(productResult.getProductCode())
-                                                    .build()
+                                            RequestProduct.create(
+                                                    productResult.getLoReqtNo(),
+                                                    productResult.getProductCode()
+                                            )
                                     ).toList()
                     ));
 

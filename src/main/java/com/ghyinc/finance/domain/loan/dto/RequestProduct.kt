@@ -1,10 +1,18 @@
-package com.ghyinc.finance.domain.loan.dto;
+package com.ghyinc.finance.domain.loan.dto
 
-import lombok.Builder;
-
-@Builder
-public record RequestProduct(
-        String loReqtNo,
-        String productCode
+data class RequestProduct(
+    val loReqtNo: String,
+    val productCode: String
 ) {
+    companion object {
+        @JvmStatic
+        fun create (
+            loReqtNo: String,
+            productCode: String
+        ): RequestProduct =
+            RequestProduct(
+                loReqtNo = loReqtNo,
+                productCode = productCode
+            )
+    }
 }
