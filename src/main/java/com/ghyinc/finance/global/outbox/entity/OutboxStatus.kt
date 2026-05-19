@@ -1,6 +1,6 @@
-package com.ghyinc.finance.global.outbox.entity;
+package com.ghyinc.finance.global.outbox.entity
 
-public enum OutboxStatus {
+enum class OutboxStatus {
     PENDING,
     PUBLISHED,
     FAILED
