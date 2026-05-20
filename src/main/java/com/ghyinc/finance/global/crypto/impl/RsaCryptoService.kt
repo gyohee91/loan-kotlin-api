@@ -1,77 +1,77 @@
-package com.ghyinc.finance.global.crypto.impl;
+package com.ghyinc.finance.global.crypto.impl
 
-import com.ghyinc.finance.global.crypto.CryptoService;
-import com.ghyinc.finance.global.crypto.enums.CryptoAlgorithm;
-import com.ghyinc.finance.global.exception.CryptoException;
-import lombok.extern.slf4j.Slf4j;
+import com.ghyinc.finance.global.crypto.CryptoService
+import com.ghyinc.finance.global.crypto.enums.CryptoAlgorithm
+import com.ghyinc.finance.global.exception.CryptoException
+import org.slf4j.LoggerFactory
+import java.nio.charset.StandardCharsets
+import java.security.KeyFactory
+import java.security.NoSuchAlgorithmException
+import java.security.PrivateKey
+import java.security.PublicKey
+import java.security.spec.InvalidKeySpecException
+import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.X509EncodedKeySpec
+import java.util.*
+import javax.crypto.Cipher
 
-import javax.crypto.Cipher;
-import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
+class RsaCryptoService(
+    publicKeyStr: String,
+    privateKeyStr: String,
+    private val algorithm: CryptoAlgorithm
+) : CryptoService {
+    private val log = LoggerFactory.getLogger(RsaCryptoService::class.java)
+    private val publicKey: PublicKey
+    private val privateKey: PrivateKey
 
-@Slf4j
-public class RsaCryptoService implements CryptoService {
-    private final PublicKey publicKey;
-    private final PrivateKey privateKey;
-    private final CryptoAlgorithm algorithm;
-
-    public RsaCryptoService(String publicKeyStr, String privateKeyStr, CryptoAlgorithm algorithm) {
+    init {
         try {
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            val keyFactory = KeyFactory.getInstance("RSA")
 
-            byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyStr);
+            val publicKeyBytes = Base64.getDecoder().decode(publicKeyStr)
             this.publicKey = keyFactory.generatePublic(
-                    new X509EncodedKeySpec(publicKeyBytes)
-            );
+                X509EncodedKeySpec(publicKeyBytes)
+            )
 
-            byte[] privateKeyBytes = Base64.getDecoder().decode(privateKeyStr);
+            val privateKeyBytes = Base64.getDecoder().decode(privateKeyStr)
             this.privateKey = keyFactory.generatePrivate(
-                    new PKCS8EncodedKeySpec(privateKeyBytes)
-            );
+                PKCS8EncodedKeySpec(privateKeyBytes)
+            )
 
-            this.algorithm = algorithm;
-
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new CryptoException("RSA 키 초기화 오류");
+        } catch (e: NoSuchAlgorithmException) {
+            throw CryptoException("RSA 키 초기화 오류")
+        } catch (e: InvalidKeySpecException) {
+            throw CryptoException("RSA 키 초기화 오류")
         }
     }
 
-    @Override
-    public boolean supports(CryptoAlgorithm algorithm) {
-        return algorithm == CryptoAlgorithm.RSA_OAEP;
-    }
+    override fun supports(algorithm: CryptoAlgorithm): Boolean =
+        algorithm == CryptoAlgorithm.RSA_OAEP
 
-    @Override
-    public String encrypt(String plainText) {
+
+    override fun encrypt(plainText: String): String {
         try {
-            Cipher cipher = Cipher.getInstance(algorithm.getAlgorithm());
-            cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-            byte[] encrypted = cipher.doFinal(
-                    plainText.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(encrypted);
-        } catch (Exception e) {
-            log.error("RSA 암호화 오류", e);
-            throw new CryptoException("암호화 처리 중 오류 발생");
+            val cipher = Cipher.getInstance(algorithm.algorithm)
+            cipher.init(Cipher.ENCRYPT_MODE, publicKey)
+            val encrypted = cipher.doFinal(
+                plainText.toByteArray(StandardCharsets.UTF_8)
+            )
+            return Base64.getEncoder().encodeToString(encrypted)
+        } catch (e: Exception) {
+            log.error("RSA 암호화 오류", e)
+            throw CryptoException("암호화 처리 중 오류 발생")
         }
     }
 
-    @Override
-    public String decrypt(String plainText) {
+    override fun decrypt(plainText: String): String {
         try {
-            Cipher cipher = Cipher.getInstance(algorithm.getAlgorithm());
-            cipher.init(Cipher.DECRYPT_MODE, privateKey);
-            byte[] decrypted = Base64.getDecoder().decode(plainText);
-            return new String(cipher.doFinal(decrypted), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            log.error("RSA 복호화 오류", e);
-            throw new CryptoException("복호화 처리 중 오류 발생");
+            val cipher = Cipher.getInstance(algorithm.algorithm)
+            cipher.init(Cipher.DECRYPT_MODE, privateKey)
+            val decrypted = Base64.getDecoder().decode(plainText)
+            return String(cipher.doFinal(decrypted), StandardCharsets.UTF_8)
+        } catch (e: Exception) {
+            log.error("RSA 복호화 오류", e)
+            throw CryptoException("복호화 처리 중 오류 발생")
         }
     }
 }

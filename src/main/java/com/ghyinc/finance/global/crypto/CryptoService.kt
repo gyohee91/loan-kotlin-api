@@ -1,9 +1,9 @@
-package com.ghyinc.finance.global.crypto;
+package com.ghyinc.finance.global.crypto
 
-import com.ghyinc.finance.global.crypto.enums.CryptoAlgorithm;
+import com.ghyinc.finance.global.crypto.enums.CryptoAlgorithm
 
-public interface CryptoService {
-    boolean supports(CryptoAlgorithm algorithm);
-    String encrypt(String plainText);
-    String decrypt(String plainText);
+interface CryptoService {
+    fun supports(algorithm: CryptoAlgorithm): Boolean
+    fun encrypt(plainText: String): String
+    fun decrypt(plainText: String): String
 }
