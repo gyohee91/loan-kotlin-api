@@ -1,39 +1,29 @@
-package com.ghyinc.finance.global.common;
+package com.ghyinc.finance.global.common
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonInclude
+import java.time.LocalDateTime
 
-import java.time.LocalDateTime;
-
-@Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ApiCommResponse<T> {
-    @Builder.Default
-    private boolean success = true;
-    private String message;
-    private T data;
+class ApiCommResponse<T>(
+    val success:Boolean = true,
+    val message: String? = null,
+    val data: T? = null,
+    val timestamp: LocalDateTime = LocalDateTime.now()
+) {
+    companion object {
+        @JvmStatic
+        fun <T> success(message: String?, data: T?): ApiCommResponse<T> =
+            ApiCommResponse(
+                message = message,
+                data = data
+            )
 
-    @Builder.Default
-    private LocalDateTime timestamp = LocalDateTime.now();
-
-    public static <T> ApiCommResponse<T> success(String message, T data) {
-        return ApiCommResponse.<T>builder()
-                .message(message)
-                .data(data)
-                .build();
-    }
-
-    public static <T> ApiCommResponse<T> fail(boolean success, String message){
-        return ApiCommResponse.<T>builder()
-                .success(false)
-                .message(message)
-                .data(null)
-                .build();
+        @JvmStatic
+        fun <T> fail(message: String?): ApiCommResponse<T> =
+            ApiCommResponse(
+                success = false,
+                message = message,
+                data = null
+            )
     }
 }

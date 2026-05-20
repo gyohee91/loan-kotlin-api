@@ -1,22 +1,21 @@
-package com.ghyinc.finance.global.common;
+package com.ghyinc.finance.global.common
 
-import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
+import com.ghyinc.finance.global.common.DateUtils.toDateString
+import org.springframework.stereotype.Component
+import java.time.LocalDateTime
+import java.util.*
 
 /**
  * 한도조회 상품별 신청번호 채번
  */
 @Component
-public class LoReqtNoGenerator {
-
-    public String generate(String prefix) {
-        String date = DateUtils.toDateString(LocalDateTime.now());
-        String uuid = UUID.randomUUID().toString()
-                .replaceAll("-", "")
-                .substring(0, 8)
-                .toLowerCase();
-        return prefix.concat(date).concat(uuid);
+class LoReqtNoGenerator {
+    fun generate(prefix: String): String {
+        val date = toDateString(LocalDateTime.now())
+        val uuid = UUID.randomUUID().toString()
+            .replace("-".toRegex(), "")
+            .substring(0, 8)
+            .lowercase(Locale.getDefault())
+        return prefix + date + uuid
     }
 }
