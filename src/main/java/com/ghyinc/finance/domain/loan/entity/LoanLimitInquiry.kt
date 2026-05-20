@@ -62,15 +62,15 @@ class LoanLimitInquiry: BaseTimeEntity() {
     @Enumerated(EnumType.STRING)
     @Comment("응답 결과")
     var status: InquiryStatus? = InquiryStatus.PENDING
-        private set
+        protected set
 
     @Comment("전체 상품 갯수")
     var totalProductCount: Int = 0
-        private set
+        protected set
 
     @Comment("Success 상품 갯수")
     var successProductCount: Int = 0
-        private set
+        protected set
 
     @OneToMany(mappedBy = "loanLimitInquiry", cascade = [CascadeType.ALL], orphanRemoval = true)
     val results: MutableList<LoanLimitResult> = mutableListOf()

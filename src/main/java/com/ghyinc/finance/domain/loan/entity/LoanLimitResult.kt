@@ -15,7 +15,7 @@ class LoanLimitResult : BaseTimeEntity() {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inquiry_id", nullable = false)
     var loanLimitInquiry: LoanLimitInquiry? = null
-        private set
+        protected set
 
     @Enumerated(EnumType.STRING)
     @Comment("금융사 코드")

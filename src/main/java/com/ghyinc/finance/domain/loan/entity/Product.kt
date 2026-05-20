@@ -22,7 +22,7 @@ class Product : BaseTimeEntity() {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "partner_id", nullable = false)
     var partner: Partner? = null
-        private set
+        protected set
 
     @Enumerated(EnumType.STRING)
     @Comment("대출유형")
