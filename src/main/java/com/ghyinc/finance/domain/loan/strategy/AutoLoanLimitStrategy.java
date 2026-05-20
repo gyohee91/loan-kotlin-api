@@ -1,13 +1,13 @@
 package com.ghyinc.finance.domain.loan.strategy;
 
+import com.ghyinc.finance.domain.external.nice.dto.NiceDnrResult;
+import com.ghyinc.finance.domain.external.nice.service.NiceDnrService;
 import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest;
 import com.ghyinc.finance.domain.loan.dto.ExternalDataContext;
 import com.ghyinc.finance.domain.loan.dto.ExternalDataError;
 import com.ghyinc.finance.domain.loan.dto.LoanLimitRequest;
 import com.ghyinc.finance.domain.loan.enums.LoanType;
 import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import com.ghyinc.finance.domain.external.nice.dto.NiceDnrResult;
-import com.ghyinc.finance.domain.external.nice.service.NiceDnrService;
 import com.ghyinc.finance.domain.loan.repository.PartnerLoanTypeRepository;
 import com.ghyinc.finance.global.common.DateUtils;
 import com.ghyinc.finance.global.exception.ExternalApiFailException;
@@ -16,9 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.errors.InvalidRequestException;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
@@ -79,8 +77,8 @@ public class AutoLoanLimitStrategy implements LoanLimitStrategy{
                 "",
                 request.agreePersonalCreditInfo(),
                 DateUtils.toDateTimeString(request.agreePersonalCreditTime()),
-                result.autoInfo(),
-                result.autoSecondInfo(),
+                result.getAutoInfo(),
+                result.getAutoSecondInfo(),
                 null
         );
     }

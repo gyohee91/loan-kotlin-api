@@ -85,13 +85,13 @@ public class KakaobankLoanLimitAdaptor implements LoanLimitAdaptor {
             }
 
             return CarParts.builder()
-                    .seq(autoInfo.seq())
-                    .formKind(autoInfo.formKind())
-                    .resCarNo(autoInfo.resCarNo())
-                    .seatingCapacity(autoInfo.seatingCapacity())
-                    .resMotorType(autoInfo.resMotorType())
-                    .resUseType(autoInfo.resUseType())
-                    .resCarModelType(autoInfo.resCarModelType())
+                    .seq(autoInfo.getSeq())
+                    .formKind(autoInfo.getFormKind())
+                    .resCarNo(autoInfo.getResCarNo())
+                    .seatingCapacity(autoInfo.getSeatingCapacity())
+                    .resMotorType(autoInfo.getResMotorType())
+                    .resUseType(autoInfo.getResUseType())
+                    .resCarModelType(autoInfo.getResCarModelType())
                     .build();
         }
     }

@@ -1,6 +1,4 @@
-package com.ghyinc.finance.domain.external.nice.dto;
-
-import lombok.Builder;
+package com.ghyinc.finance.domain.external.nice.dto
 
 /**
  * Nice DNR 조회 요청 DTO
@@ -10,11 +8,28 @@ import lombok.Builder;
  * @param ownerNm   차주명
  * @param vhrNo     차량번호
  */
-@Builder
-public record NiceDnrRequest(
-        String apiKey,
-        String loginId,
-        String kindOf,
-        String ownerNm,
-        String vhrNo
-) {}
+data class NiceDnrRequest(
+    val apiKey: String? = null,
+    val loginId: String? = null,
+    val kindOf: String? = null,
+    val ownerNm: String? = null,
+    val vhrNo: String? = null
+) {
+    companion object {
+        @JvmStatic
+        fun create(
+            apiKey: String? = null,
+            loginId: String? = null,
+            kindOf: String? = null,
+            ownerNm: String? = null,
+            vhrNo: String? = null
+        ): NiceDnrRequest =
+            NiceDnrRequest(
+                apiKey = apiKey,
+                loginId = loginId,
+                kindOf = kindOf,
+                ownerNm = ownerNm,
+                vhrNo = vhrNo
+            )
+    }
+}

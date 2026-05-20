@@ -1,13 +1,13 @@
 package com.ghyinc.finance.domain.loan.strategy;
 
+import com.ghyinc.finance.domain.external.coocon.dto.KbAppraisalResult;
+import com.ghyinc.finance.domain.external.coocon.service.KbAppraisalService;
 import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest;
 import com.ghyinc.finance.domain.loan.dto.ExternalDataContext;
 import com.ghyinc.finance.domain.loan.dto.ExternalDataError;
 import com.ghyinc.finance.domain.loan.dto.LoanLimitRequest;
 import com.ghyinc.finance.domain.loan.enums.LoanType;
 import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import com.ghyinc.finance.domain.external.coocon.dto.KbAppraisalResult;
-import com.ghyinc.finance.domain.external.coocon.service.KbAppraisalService;
 import com.ghyinc.finance.domain.loan.repository.PartnerLoanTypeRepository;
 import com.ghyinc.finance.global.common.DateUtils;
 import com.ghyinc.finance.global.exception.ExternalApiFailException;
@@ -17,7 +17,6 @@ import org.apache.kafka.common.errors.InvalidRequestException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -81,7 +80,7 @@ public class MorgageLoanLimitStrategy implements LoanLimitStrategy {
                 DateUtils.toDateTimeString(request.agreePersonalCreditTime()),
                 null,
                 null,
-                result.respData()
+                result.getRespData()
         );
     }
 
