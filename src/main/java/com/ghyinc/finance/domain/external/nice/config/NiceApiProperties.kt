@@ -19,12 +19,12 @@ import org.springframework.stereotype.Component
 @Component
 @ConfigurationProperties(prefix = "nice-api")
 class NiceApiProperties {
-    val dnr: NiceApiConfig = NiceApiConfig()
+    var dnr: NiceApiConfig = NiceApiConfig()
 
     class NiceApiConfig {
-        val baseUrl: String? = null
-        val path: String? = null
-        val connectTimeoutMs = 0
-        val readTimeoutMs = 0
+        var baseUrl: String = ""
+        var path: String = ""
+        var connectTimeoutMs: Int = 0
+        var readTimeoutMs: Int = 0
     }
 }

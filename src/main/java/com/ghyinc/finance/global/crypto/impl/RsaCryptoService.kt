@@ -38,9 +38,9 @@ class RsaCryptoService(
                 PKCS8EncodedKeySpec(privateKeyBytes)
             )
 
-        } catch (e: NoSuchAlgorithmException) {
+        } catch (_: NoSuchAlgorithmException) {
             throw CryptoException("RSA 키 초기화 오류")
-        } catch (e: InvalidKeySpecException) {
+        } catch (_: InvalidKeySpecException) {
             throw CryptoException("RSA 키 초기화 오류")
         }
     }
