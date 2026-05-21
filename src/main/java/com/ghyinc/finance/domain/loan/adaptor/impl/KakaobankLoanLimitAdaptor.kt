@@ -1,182 +1,157 @@
-package com.ghyinc.finance.domain.loan.adaptor.impl;
+package com.ghyinc.finance.domain.loan.adaptor.impl
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.ghyinc.finance.domain.external.nice.dto.AutoInfo;
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest;
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import com.ghyinc.finance.global.client.ApiClient;
-import com.ghyinc.finance.global.client.ApiClientFactory;
-import com.ghyinc.finance.global.config.PartnerApiProperties;
-import com.ghyinc.finance.global.crypto.CryptoFactory;
-import com.ghyinc.finance.global.crypto.CryptoService;
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
-import lombok.Builder;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.ghyinc.finance.domain.external.nice.dto.AutoInfo
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse.Companion.fail
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse.Companion.success
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import com.ghyinc.finance.global.client.ApiClientFactory
+import com.ghyinc.finance.global.config.PartnerApiProperties
+import com.ghyinc.finance.global.crypto.CryptoFactory
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Component
 
-import java.util.List;
-import java.util.Objects;
-
-@Slf4j
 @Component
-@RequiredArgsConstructor
-public class KakaobankLoanLimitAdaptor implements LoanLimitAdaptor {
-    private final ApiClientFactory apiClientFactory;
-    private final CryptoFactory cryptoFactory;
-    private final PartnerApiProperties partnerApiProperties;
+class KakaobankLoanLimitAdaptor(
+    private val apiClientFactory: ApiClientFactory,
+    private val cryptoFactory: CryptoFactory,
+    private val partnerApiProperties: PartnerApiProperties
+) : LoanLimitAdaptor {
+    private val log = LoggerFactory.getLogger(KakaobankLoanLimitAdaptor::class.java)
 
-    @Builder
-    private record KakaobankLimitRequest(
-            @JsonProperty("alnc_gds_infos")
-            List<AlncGdsInfo> alncGdsInfos,
-            @JsonProperty("rsdt_no")
-            String rsdtNo,
-            @JsonProperty("cust_nm")
-            String custNm,
-            @JsonProperty("cust_input_info")
-            CustInputInfo custInputInfo,
-            @JsonProperty("vhc_no")
-            String vhcNo,
-            @JsonProperty("car_parts")
-            CarParts carParts
-    ) {}
+    private data class KakaobankLimitRequest(
+        @field:JsonProperty("alnc_gds_infos") val alncGdsInfos: List<AlncGdsInfo>,
+        @field:JsonProperty("rsdt_no") val rsdtNo: String,
+        @field:JsonProperty("cust_nm") val custNm: String,
+        @field:JsonProperty("cust_input_info") val custInputInfo: CustInputInfo,
+        @field:JsonProperty("vhc_no") val vhcNo: String? = null,
+        @field:JsonProperty("car_parts") val carParts: CarParts? = null
+    )
 
-    @Builder
-    private record AlncGdsInfo(
-            @JsonProperty("iqry_dman_no")
-            String iqryDmanNo,
-            @JsonProperty("alnc_gds_unq_cd")
-            String alncGdsUnqCd
-    ) {}
+    private data class AlncGdsInfo(
+        @field:JsonProperty("iqry_dman_no") val iqryDmanNo: String,
+        @field:JsonProperty("alnc_gds_unq_cd") val alncGdsUnqCd: String
+    )
 
-    @Builder
-    private record CustInputInfo(
-            @JsonProperty("ocup_dvcd")
-            String ocupDvcd,
-            @JsonProperty("cur_wrst_nm")
-            String curWrstNm,
-            @JsonProperty("cur_wrst_encm")
-            String curWrstEncm
+    private data class CustInputInfo(
+        @field:JsonProperty("ocup_dvcd") val ocupDvcd: String?,
+        @field:JsonProperty("cur_wrst_nm") val curWrstNm: String?,
+        @field:JsonProperty("cur_wrst_encm") val curWrstEncm: String?
     ) {
-        public static CustInputInfo from(LoanLimitAdaptorRequest requestParam) {
-            return CustInputInfo.builder()
-                    .ocupDvcd(requestParam.getLoanType().name())
-                    .curWrstNm(requestParam.getJobName())
-                    .curWrstEncm(requestParam.getJoinDate())
-                    .build();
-        }
-    }
-
-    @Builder
-    private record CarParts(
-            String seq,
-            String formKind,
-            String resCarNo,
-            String seatingCapacity,
-            String resMotorType,
-            String resUseType,
-            String resCarModelType
-    ) {
-        public static CarParts from(AutoInfo autoInfo) {
-            if(Objects.isNull(autoInfo)) {
-                return null;
+        companion object {
+            fun from(requestParam: LoanLimitAdaptorRequest): CustInputInfo {
+                return CustInputInfo(
+                    ocupDvcd = requestParam.jobType?.name,
+                    curWrstNm = requestParam.jobName,
+                    curWrstEncm = requestParam.joinDate
+                )
             }
-
-            return CarParts.builder()
-                    .seq(autoInfo.getSeq())
-                    .formKind(autoInfo.getFormKind())
-                    .resCarNo(autoInfo.getResCarNo())
-                    .seatingCapacity(autoInfo.getSeatingCapacity())
-                    .resMotorType(autoInfo.getResMotorType())
-                    .resUseType(autoInfo.getResUseType())
-                    .resCarModelType(autoInfo.getResCarModelType())
-                    .build();
         }
     }
 
-    private record LimitResponse(
-            String resultCode
-    ) {}
-
-
-    @Override
-    public boolean supports(PartnerCode partnerCode) {
-        return partnerCode == PartnerCode.KAKAO_BANK;
+    private data class CarParts(
+        val seq: String?,
+        val formKind: String?,
+        val resCarNo: String?,
+        val seatingCapacity: String?,
+        val resMotorType: String?,
+        val resUseType: String?,
+        val resCarModelType: String?
+    ) {
+        companion object {
+            fun from(autoInfo: AutoInfo?): CarParts? {
+                autoInfo ?: return null
+                return CarParts(
+                    seq = autoInfo.seq,
+                    formKind = autoInfo.formKind,
+                    resCarNo = autoInfo.resCarNo,
+                    seatingCapacity = autoInfo.seatingCapacity,
+                    resMotorType = autoInfo.resMotorType,
+                    resUseType = autoInfo.resUseType,
+                    resCarModelType = autoInfo.resCarModelType
+                )
+            }
+        }
     }
 
-    @Override
-    public LoanLimitAdaptorResponse inquireLimit(PartnerCode partnerCode, LoanLimitAdaptorRequest requestParam) {
-        long startTime = System.currentTimeMillis();
+    private data class LimitResponse(
+        val resultCode: String
+    )
 
-        CryptoService cryptoService = cryptoFactory.getCryptoService(partnerCode);
-        ApiClient apiClient = apiClientFactory.getApiClient(partnerCode);
-        String path = partnerApiProperties.getConfig(PartnerCode.KAKAO_BANK).getPath();
+
+    override fun supports(partnerCode: PartnerCode): Boolean =
+        partnerCode == PartnerCode.KAKAO_BANK
+
+    override fun inquireLimit(
+        partnerCode: PartnerCode,
+        requestParam: LoanLimitAdaptorRequest
+    ): LoanLimitAdaptorResponse {
+        val startTime = System.currentTimeMillis()
+
+        val cryptoService = cryptoFactory.getCryptoService(partnerCode)
+        val apiClient = apiClientFactory.getApiClient(partnerCode)
+        val path = partnerApiProperties.getConfig(PartnerCode.KAKAO_BANK).path
 
         try {
-            KakaobankLimitRequest request = KakaobankLimitRequest.builder()
-                    .alncGdsInfos(
-                            requestParam.getRequestProducts().stream()
-                                    .map(
-                                            requestProduct -> AlncGdsInfo.builder()
-                                                    .iqryDmanNo(requestProduct.getLoReqtNo())
-                                                    .alncGdsUnqCd(requestProduct.getProductCode())
-                                                    .build()
-                                    )
-                                    .toList()
-                    )
-                    .rsdtNo(cryptoService.encrypt(requestParam.getRrno()))
-                    .custNm(cryptoService.encrypt(requestParam.getName()))
-                    .custInputInfo(CustInputInfo.from(requestParam))
-                    .vhcNo(requestParam.getCarNo())
-                    .carParts(CarParts.from(requestParam.getAutoInfo()))
-                    .build();
+            val request = KakaobankLimitRequest(
+                alncGdsInfos = requestParam.requestProducts.map { requestProduct ->
+                            AlncGdsInfo(
+                                iqryDmanNo = requestProduct.loReqtNo,
+                                alncGdsUnqCd = requestProduct.productCode
+                            )
+                        },
+                rsdtNo = cryptoService.encrypt(requestParam.rrno),
+                custNm = cryptoService.encrypt(requestParam.name),
+                custInputInfo = CustInputInfo.from(requestParam),
+                vhcNo = requestParam.carNo,
+                carParts = CarParts.from(requestParam.autoInfo)
+            )
 
-            LimitResponse result = apiClient.post(
-                    partnerCode,
-                    path,
-                    request,
-                    LimitResponse.class
-            );
+            val result = apiClient.post(
+                partnerCode,
+                path,
+                request,
+                LimitResponse::class.java
+            )
 
-            long resTimeMs = System.currentTimeMillis() - startTime;
+            val resTimeMs = System.currentTimeMillis() - startTime
 
-            if(!"SUCCESS".equals(result.resultCode())) {
-                log.warn("[{}] 한도조회 실패. resultCode={}", PartnerCode.KAKAO_BANK, result.resultCode());
-                return LoanLimitAdaptorResponse.fail(
-                        PartnerCode.KAKAO_BANK,
-                        result.resultCode(),
-                        resTimeMs
-                );
+            if ("SUCCESS" != result.resultCode) {
+                log.warn("[{}] 한도조회 실패. resultCode={}", PartnerCode.KAKAO_BANK, result.resultCode)
+                return fail(
+                    partnerCode = PartnerCode.KAKAO_BANK,
+                    failReason = result.resultCode,
+                    resTimeMs = resTimeMs
+                )
             }
 
-            log.info("[{}] 한도조회 성공, resTimeMs={}", PartnerCode.KAKAO_BANK, resTimeMs);
+            log.info("[{}] 한도조회 성공, resTimeMs={}", PartnerCode.KAKAO_BANK, resTimeMs)
 
-            return LoanLimitAdaptorResponse.success(
-                    PartnerCode.KAKAO_BANK,
-                    resTimeMs
-            );
-        }
-        catch (CallNotPermittedException e) {
+            return success(
+                partnerCode = PartnerCode.KAKAO_BANK,
+                resTimeMs = resTimeMs
+            )
+        } catch (_: CallNotPermittedException) {
             // Circuit Breaker OPEN Fallback
             // -> 해당 금융사 격리, 나머지 금융사 정상 진행 (Partial Success)
-            long resTimeMs = System.currentTimeMillis() - startTime;
-            log.warn("[{}] Circuit Breaker OPEN -> Fallback 실행", PartnerCode.KAKAO_BANK);
-            return LoanLimitAdaptorResponse.fail(
-                    partnerCode,
-                    "CB_OPEN",
-                    resTimeMs
-            );
-        }
-        catch (Exception e) {
-            long resTimeMs = System.currentTimeMillis() - startTime;
-            log.error("[{}] 한도조회 오류 발생", PartnerCode.KAKAO_BANK, e);
-            return LoanLimitAdaptorResponse.fail(
-                    PartnerCode.KAKAO_BANK,
-                    e.getMessage(),
-                    resTimeMs
-            );
+            val resTimeMs = System.currentTimeMillis() - startTime
+            log.warn("[{}] Circuit Breaker OPEN -> Fallback 실행", PartnerCode.KAKAO_BANK)
+            return fail(
+                partnerCode = partnerCode,
+                failReason = "CB_OPEN",
+                resTimeMs = resTimeMs
+            )
+        } catch (e: Exception) {
+            val resTimeMs = System.currentTimeMillis() - startTime
+            log.error("[{}] 한도조회 오류 발생", PartnerCode.KAKAO_BANK, e)
+            return fail(
+                partnerCode = PartnerCode.KAKAO_BANK,
+                failReason = e.message ?: "Unknown error",
+                resTimeMs = resTimeMs
+            )
         }
     }
 }

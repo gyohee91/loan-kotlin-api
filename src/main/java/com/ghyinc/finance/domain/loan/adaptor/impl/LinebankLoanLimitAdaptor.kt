@@ -1,148 +1,131 @@
-package com.ghyinc.finance.domain.loan.adaptor.impl;
+package com.ghyinc.finance.domain.loan.adaptor.impl
 
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest;
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import com.ghyinc.finance.global.client.ApiClient;
-import com.ghyinc.finance.global.client.ApiClientFactory;
-import com.ghyinc.finance.global.config.PartnerApiProperties;
-import com.ghyinc.finance.global.crypto.CryptoFactory;
-import com.ghyinc.finance.global.crypto.CryptoService;
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
-import lombok.Builder;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse.Companion.fail
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse.Companion.success
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import com.ghyinc.finance.global.client.ApiClientFactory
+import com.ghyinc.finance.global.config.PartnerApiProperties
+import com.ghyinc.finance.global.crypto.CryptoFactory
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Component
 
-import java.util.List;
-
-@Slf4j
 @Component
-@RequiredArgsConstructor
-public class LinebankLoanLimitAdaptor implements LoanLimitAdaptor {
-    private final ApiClientFactory apiClientFactory;
-    private final CryptoFactory cryptoFactory;
-    private final PartnerApiProperties partnerApiProperties;
+class LinebankLoanLimitAdaptor(
+    private val apiClientFactory: ApiClientFactory,
+    private val cryptoFactory: CryptoFactory,
+    private val partnerApiProperties: PartnerApiProperties
+) : LoanLimitAdaptor {
+    private val log = LoggerFactory.getLogger(LinebankLoanLimitAdaptor::class.java)
 
-    @Builder
-    private record LinebankLimitRequest(
-            PreScreeningRequest preScreeningRequest
-    ){}
+    private data class LinebankLimitRequest(
+        val preScreeningRequest: PreScreeningRequest
+    )
 
-    @Builder
-    private record PreScreeningRequest(
-            Data data,
-            List<RequestProduct> requestProducts
-    ){}
+    private data class PreScreeningRequest(
+        val data: Data,
+        val requestProducts: List<RequestProduct>
+    )
 
-    @Builder
-    private record Data(
-            boolean agreePersonalCreditInfo,
-            boolean agreeIdentifyInfo,
-            String name,
-            String rrn,
-            String ci,
-            String authSmsTime,
-            String jobType,
-            String joinDate,
-            String carNo
-    ){}
+    private data class Data(
+        val agreePersonalCreditInfo: Boolean? = null,
+        val agreeIdentifyInfo: Boolean? = null,
+        val name: String,
+        val rrn: String,
+        val ci: String? = null,
+        val authSmsTime: String? = null,
+        val jobType: String?,
+        val joinDate: String?,
+        val carNo: String?
+    )
 
-    @Builder
-    private record RequestProduct(
-            String ticketId,
-            String loanProductId
-    ) {}
+    private data class RequestProduct(
+        val ticketId: String,
+        val loanProductId: String
+    )
 
-    private record LinebankLimitResponse(
-            String resultCode
-    ) {}
+    private data class LinebankLimitResponse(
+        val resultCode: String
+    )
 
-    @Override
-    public boolean supports(PartnerCode partnerCode) {
-        return partnerCode == PartnerCode.LINE_BANK;
-    }
+    override fun supports(partnerCode: PartnerCode): Boolean =
+        partnerCode == PartnerCode.LINE_BANK
 
-    @Override
-    public LoanLimitAdaptorResponse inquireLimit(PartnerCode partnerCode, LoanLimitAdaptorRequest requestParam) {
-        long startTime = System.currentTimeMillis();
+    override fun inquireLimit(
+        partnerCode: PartnerCode,
+        requestParam: LoanLimitAdaptorRequest
+    ): LoanLimitAdaptorResponse {
+        val startTime = System.currentTimeMillis()
 
-        ApiClient apiClient = apiClientFactory.getApiClient(partnerCode);
-        CryptoService cryptoService = cryptoFactory.getCryptoService(partnerCode);
-        String path = partnerApiProperties.getConfig(partnerCode).getPath();
+        val apiClient = apiClientFactory.getApiClient(partnerCode)
+        val cryptoService = cryptoFactory.getCryptoService(partnerCode)
+        val path = partnerApiProperties.getConfig(partnerCode).path
 
-        try {
-            PreScreeningRequest preScreeningRequest = PreScreeningRequest.builder()
-                    .data(Data.builder()
-                            .name(cryptoService.encrypt(requestParam.getName()))
-                            .rrn(cryptoService.encrypt(requestParam.getRrno()))
-                            .ci(null)
-                            .jobType(requestParam.getJobType().name())
-                            .joinDate(requestParam.getJoinDate())
-                            .carNo(requestParam.getCarNo())
-                            .build()
-                    )
-                    .requestProducts(
-                            requestParam.getRequestProducts().stream()
-                                    .map(requestProduct -> RequestProduct.builder()
-                                            .ticketId(requestProduct.getLoReqtNo())
-                                            .loanProductId(requestProduct.getProductCode())
-                                            .build()
-                                    )
-                                    .toList()
-                    )
-                    .build();
+        return try {
+            val preScreeningRequest = PreScreeningRequest(
+                data = Data(
+                    name = cryptoService.encrypt(requestParam.name),
+                    rrn = cryptoService.encrypt(requestParam.rrno),
+                    jobType = requestParam.jobType?.name,
+                    joinDate = requestParam.joinDate,
+                    carNo = requestParam.carNo
+                ),
+                requestProducts =
+                    requestParam.requestProducts.map { requestProduct ->
+                        RequestProduct(
+                            ticketId = requestProduct.loReqtNo,
+                            loanProductId = requestProduct.productCode
+                        )
+                    }
+            )
 
-            LinebankLimitRequest request = LinebankLimitRequest.builder()
-                    .preScreeningRequest(preScreeningRequest)
-                    .build();
+            val request = LinebankLimitRequest(preScreeningRequest = preScreeningRequest)
 
             // External API
-            LinebankLimitResponse result = apiClient.post(
-                    partnerCode,
-                    path,
-                    request,
-                    LinebankLimitResponse.class
-            );
+            val result = apiClient.post(
+                partnerCode,
+                path,
+                request,
+                LinebankLimitResponse::class.java
+            )
 
-            long resTimeMs = System.currentTimeMillis() - startTime;
+            val resTimeMs = System.currentTimeMillis() - startTime
 
-            if (!"SUCCESS".equals(result.resultCode())) {
-                log.warn("[{}] 한도조회 실패. resultCode={}", PartnerCode.LINE_BANK, result.resultCode());
-                return LoanLimitAdaptorResponse.fail(
-                        PartnerCode.LINE_BANK,
-                        result.resultCode(),
-                        resTimeMs
-                );
+            if ("SUCCESS" != result.resultCode) {
+                log.warn("[{}] 한도조회 실패. resultCode={}", PartnerCode.LINE_BANK, result.resultCode)
+                fail(
+                    partnerCode = PartnerCode.LINE_BANK,
+                    failReason = result.resultCode,
+                    resTimeMs = resTimeMs
+                )
             }
 
-            log.info("[{}] 한도조회 성공, resTimeMs={}", PartnerCode.LINE_BANK, resTimeMs);
+            log.info("[{}] 한도조회 성공, resTimeMs={}", PartnerCode.LINE_BANK, resTimeMs)
 
-            return LoanLimitAdaptorResponse.success(
-                    PartnerCode.LINE_BANK,
-                    resTimeMs
-            );
-
-        }
-        catch (CallNotPermittedException e) {
+            success(
+                partnerCode = PartnerCode.LINE_BANK,
+                resTimeMs = resTimeMs
+            )
+        } catch (_: CallNotPermittedException) {
             // Circuit Breaker OPEN Fallback
             // -> 해당 금융사 격리, 나머지 금융사 정상 진행 (Partial Success)
-            long resTimeMs = System.currentTimeMillis() - startTime;
-            log.warn("[{}] Circuit Breaker OPEN -> Fallback 실행", PartnerCode.LINE_BANK);
-            return LoanLimitAdaptorResponse.fail(
-                    partnerCode,
-                    "CB_OPEN",
-                    resTimeMs
-            );
-        }
-        catch (Exception e) {
-            long resTimeMs = System.currentTimeMillis() - startTime;
-            log.error("[{}] 한도조회 오류 발생", PartnerCode.LINE_BANK, e);
-            return LoanLimitAdaptorResponse.fail(
-                    PartnerCode.LINE_BANK,
-                    e.getMessage(),
-                    resTimeMs
-            );
+            val resTimeMs = System.currentTimeMillis() - startTime
+            log.warn("[{}] Circuit Breaker OPEN -> Fallback 실행", PartnerCode.LINE_BANK)
+            fail(
+                partnerCode = partnerCode,
+                failReason = "CB_OPEN",
+                resTimeMs = resTimeMs
+            )
+        } catch (e: Exception) {
+            val resTimeMs = System.currentTimeMillis() - startTime
+            log.error("[{}] 한도조회 오류 발생", PartnerCode.LINE_BANK, e)
+            fail(
+                partnerCode = PartnerCode.LINE_BANK,
+                failReason = e.message ?: "Unknown error",
+                resTimeMs = resTimeMs
+            )
         }
     }
 }

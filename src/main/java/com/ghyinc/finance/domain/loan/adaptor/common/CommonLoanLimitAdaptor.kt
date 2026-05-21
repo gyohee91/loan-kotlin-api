@@ -1,125 +1,114 @@
-package com.ghyinc.finance.domain.loan.adaptor.common;
+package com.ghyinc.finance.domain.loan.adaptor.common
 
-import com.ghyinc.finance.domain.external.nice.dto.AutoInfo;
-import com.ghyinc.finance.domain.external.nice.dto.AutoSecondInfo;
-import com.ghyinc.finance.domain.loan.adaptor.impl.LoanLimitAdaptor;
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest;
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse;
-import com.ghyinc.finance.domain.loan.dto.RequestProduct;
-import com.ghyinc.finance.domain.loan.enums.JobType;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import com.ghyinc.finance.global.client.ApiClient;
-import com.ghyinc.finance.global.client.ApiClientFactory;
-import com.ghyinc.finance.global.config.PartnerApiProperties;
-import com.ghyinc.finance.global.crypto.CryptoFactory;
-import com.ghyinc.finance.global.crypto.CryptoService;
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
-import lombok.Builder;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import com.ghyinc.finance.domain.external.nice.dto.AutoInfo
+import com.ghyinc.finance.domain.external.nice.dto.AutoSecondInfo
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse.Companion.fail
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse.Companion.success
+import com.ghyinc.finance.domain.loan.adaptor.impl.LoanLimitAdaptor
+import com.ghyinc.finance.domain.loan.dto.RequestProduct
+import com.ghyinc.finance.domain.loan.enums.JobType
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import com.ghyinc.finance.global.client.ApiClientFactory
+import com.ghyinc.finance.global.config.PartnerApiProperties
+import com.ghyinc.finance.global.crypto.CryptoFactory
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Component
 
-import java.util.List;
-
-@Slf4j
 @Component
-@RequiredArgsConstructor
-public class CommonLoanLimitAdaptor implements LoanLimitAdaptor {
-    private final ApiClientFactory apiClientFactory;
-    private final CryptoFactory cryptoFactory;
-    private final PartnerApiProperties partnerApiProperties;
+class CommonLoanLimitAdaptor(
+    private val apiClientFactory: ApiClientFactory,
+    private val cryptoFactory: CryptoFactory,
+    private val partnerApiProperties: PartnerApiProperties
+) : LoanLimitAdaptor {
+    private val log = LoggerFactory.getLogger(CommonLoanLimitAdaptor::class.java)
 
-    @Builder
-    private record CommonLimitRequest(
-            List<RequestProduct> requestProducts,
-            String rrn,
-            String name,
-            JobType jobType,
-            String jobName,
-            String joinDate,
-            String carNo,
-            AutoInfo autoInfo,
-            AutoSecondInfo autoSecondInfo
-    ) {}
+    private data class CommonLimitRequest(
+        val requestProducts: List<RequestProduct>,
+        val rrn: String?,
+        val name: String?,
+        val jobType: JobType?,
+        val jobName: String?,
+        val joinDate: String? = null,
+        val carNo: String? = null,
+        val autoInfo: AutoInfo? = null,
+        val autoSecondInfo: AutoSecondInfo? = null
+    )
 
-    private record CommonLimitResponse(
-            String resultCode
-    ) {}
+    private data class CommonLimitResponse(
+        val resultCode: String
+    )
 
-    @Override
-    public boolean supports(PartnerCode partnerCode) {
-        return partnerCode.getStandard();
-    }
+    override fun supports(partnerCode: PartnerCode): Boolean = partnerCode.standard
 
-    @Override
-    public LoanLimitAdaptorResponse inquireLimit(PartnerCode partnerCode, LoanLimitAdaptorRequest requestParam) {
-        long startTime = System.currentTimeMillis();
+    override fun inquireLimit(
+        partnerCode: PartnerCode,
+        requestParam: LoanLimitAdaptorRequest
+    ): LoanLimitAdaptorResponse {
+        val startTime = System.currentTimeMillis()
 
         //통신 방식에 맞는 ApiClient 자동 선택
-        ApiClient apiClient = apiClientFactory.getApiClient(partnerCode);
-        CryptoService cryptoService = cryptoFactory.getCryptoService(partnerCode);
-        String path = partnerApiProperties.getConfig(partnerCode).getPath();
+        val apiClient = apiClientFactory.getApiClient(partnerCode)
+        val cryptoService = cryptoFactory.getCryptoService(partnerCode)
+        val path = partnerApiProperties.getConfig(partnerCode).path
 
         try {
-            CommonLimitRequest request = CommonLimitRequest.builder()
-                    .requestProducts(requestParam.getRequestProducts())
-                    .rrn(cryptoService.encrypt(requestParam.getRrno()))
-                    .name(cryptoService.encrypt(requestParam.getName()))
-                    .jobType(requestParam.getJobType())
-                    .jobName(requestParam.getJobName())
-                    .joinDate(requestParam.getJoinDate())
-                    .carNo(requestParam.getCarNo())
-                    .autoInfo(requestParam.getAutoInfo())
-                    .autoSecondInfo(requestParam.getAutoSecondInfo())
-                    .build();
+            val request = CommonLimitRequest(
+                requestProducts = requestParam.requestProducts,
+                rrn = cryptoService.encrypt(requestParam.rrno),
+                name = cryptoService.encrypt(requestParam.name),
+                jobType = requestParam.jobType,
+                jobName = requestParam.jobName,
+                joinDate = requestParam.joinDate,
+                carNo = requestParam.carNo,
+                autoInfo = requestParam.autoInfo,
+                autoSecondInfo = requestParam.autoSecondInfo
+            )
 
-            CommonLimitResponse result = apiClient.post(
-                    partnerCode,
-                    path,
-                    request,
-                    CommonLimitResponse.class
-            );
+            val result = apiClient.post(
+                partnerCode,
+                path,
+                request,
+                CommonLimitResponse::class.java
+            )
 
-            long resTimeMs = System.currentTimeMillis() - startTime;
+            val resTimeMs = System.currentTimeMillis() - startTime
 
-            if(!"SUCCESS".equals(result.resultCode())) {
-                log.warn("[{}] 한도조회 실패. resultCode={}", partnerCode, result.resultCode());
-                return LoanLimitAdaptorResponse.fail(
-                        partnerCode,
-                        result.resultCode(),
-                        resTimeMs
-                );
+            if ("SUCCESS" != result.resultCode) {
+                log.warn("[{}] 한도조회 실패. resultCode={}", partnerCode, result.resultCode)
+                return fail(
+                    partnerCode = partnerCode,
+                    failReason = result.resultCode,
+                    resTimeMs = resTimeMs
+                )
             }
 
-            log.info("[{}] 한도조회 성공, resTimeMs={}", partnerCode, resTimeMs);
+            log.info("[{}] 한도조회 성공, resTimeMs={}", partnerCode, resTimeMs)
 
-            return LoanLimitAdaptorResponse.success(
-                    partnerCode,
-                    resTimeMs
-            );
-        }
-        catch (CallNotPermittedException e) {
+            return success(
+                partnerCode = partnerCode,
+                resTimeMs = resTimeMs
+            )
+        } catch (_: CallNotPermittedException) {
             // Circuit Breaker OPEN Fallback
             // -> 해당 금융사 격리, 나머지 금융사 정상 진행 (Partial Success)
-            long resTimeMs = System.currentTimeMillis() - startTime;
-            log.warn("[{}] Circuit Breaker OPEN -> Fallback 실행", partnerCode);
-            return LoanLimitAdaptorResponse.fail(
-                    partnerCode,
-                    "CB_OPEN",
-                    resTimeMs
-            );
+            val resTimeMs = System.currentTimeMillis() - startTime
+            log.warn("[{}] Circuit Breaker OPEN -> Fallback 실행", partnerCode)
+            return fail(
+                partnerCode = partnerCode,
+                failReason = "CB_OPEN",
+                resTimeMs = resTimeMs
+            )
+        } catch (e: Exception) {
+            val resTimeMs = System.currentTimeMillis() - startTime
+            log.error("[{}] 한도조회 오류 발생", partnerCode, e)
+            return fail(
+                partnerCode = partnerCode,
+                failReason = e.message ?: "Unknown error",
+                resTimeMs = resTimeMs
+            )
         }
-        catch (Exception e) {
-            long resTimeMs = System.currentTimeMillis() - startTime;
-            log.error("[{}] 한도조회 오류 발생", partnerCode, e);
-            return LoanLimitAdaptorResponse.fail(
-                    partnerCode,
-                    e.getMessage(),
-                    resTimeMs
-            );
-        }
-
     }
-
-
 }

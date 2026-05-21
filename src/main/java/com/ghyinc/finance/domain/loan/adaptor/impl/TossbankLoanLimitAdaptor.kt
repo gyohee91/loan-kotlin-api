@@ -1,159 +1,149 @@
-package com.ghyinc.finance.domain.loan.adaptor.impl;
+package com.ghyinc.finance.domain.loan.adaptor.impl
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest;
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import com.ghyinc.finance.global.client.ApiClient;
-import com.ghyinc.finance.global.client.ApiClientFactory;
-import com.ghyinc.finance.global.config.PartnerApiProperties;
-import com.ghyinc.finance.global.crypto.CryptoFactory;
-import com.ghyinc.finance.global.crypto.CryptoService;
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
-import lombok.Builder;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse.Companion.fail
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse.Companion.success
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import com.ghyinc.finance.global.client.ApiClientFactory
+import com.ghyinc.finance.global.config.PartnerApiProperties
+import com.ghyinc.finance.global.crypto.CryptoFactory
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException
+import lombok.extern.slf4j.Slf4j
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Component
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
-public class TossbankLoanLimitAdaptor implements LoanLimitAdaptor {
-    private final ApiClientFactory apiClientFactory;
-    private final CryptoFactory cryptoFactory;
-    private final PartnerApiProperties partnerApiProperties;
+class TossbankLoanLimitAdaptor(
+    private val apiClientFactory: ApiClientFactory,
+    private val cryptoFactory: CryptoFactory,
+    private val partnerApiProperties: PartnerApiProperties,
+    private val objectMapper: ObjectMapper
+) : LoanLimitAdaptor {
+    private val log = LoggerFactory.getLogger(TossbankLoanLimitAdaptor::class.java)
 
-    private final ObjectMapper objectMapper;
+    private data class TossbankLimitRequest(
+        val encrytedData: String
+    )
 
-    @Builder
-    private record TossbankLimitRequest(
-            String encrytedData
-    ) {}
+    private data class LimitRequestPlainText(
+        val data: Data,
+        val requestProducts: List<RequestProduct>
+    )
 
-    @Builder
-    private record LimitRequestPlainText(
-            Data data,
-            List<RequestProduct> requestProducts
-    ) {}
+    private data class Data(
+        val agreePersonalCreditInfo: Boolean? = null,
+        val agreeTermsTime: String? = null,
+        val name: String,
+        val jobType: String?,
+        val joinDate: String?,
+        val rrn: String,
+        val corporateName: String?,
+        val automobileNumber: String? = null,
+        val automobileInfo: AutomobileInfo? = null
+    )
 
-    @Builder
-    private record Data(
-            boolean agreePersonalCreditInfo,
-            String agreeTermsTime,
-            String name,
-            String jobType,
-            String joinDate,
-            String rrn,
-            String corporateName,
-            String automobileNumber,
-            AutomobileInfo automobileInfo
-    ){}
+    private data class AutomobileInfo(
+        val seq: String?,
+        val formKind: String?,
+        val resCarNo: String?,
+        val seatingCapacity: String?,
+        val resMotorType: String?,
+        val resUseType: String?,
+        val resCarModelType: String?
+    )
 
-    private record AutomobileInfo(
-            String seq,
-            String formKind,
-            String resCarNo,
-            String seatingCapacity,
-            String resMotorType,
-            String resUseType,
-            String resCarModelType
-    ){}
+    private data class RequestProduct(
+        val loanReqNo: String,
+        val loanProductId: String
+    )
 
-    @Builder
-    private record RequestProduct(
-            String loanReqNo,
-            String loanProductId
-    ) {}
-
-    private record TossbankLimitResponse(
-            String resultCode
-    ) {}
+    private data class TossbankLimitResponse(
+        val resultCode: String
+    )
 
 
-    @Override
-    public boolean supports(PartnerCode partnerCode) {
-        return partnerCode == PartnerCode.TOSS_BANK;
-    }
+    override fun supports(partnerCode: PartnerCode): Boolean =
+        partnerCode == PartnerCode.TOSS_BANK
 
-    @Override
-    public LoanLimitAdaptorResponse inquireLimit(PartnerCode partnerCode, LoanLimitAdaptorRequest requestParam) {
-        long startTime = System.currentTimeMillis();
+    override fun inquireLimit(
+        partnerCode: PartnerCode,
+        requestParam: LoanLimitAdaptorRequest
+    ): LoanLimitAdaptorResponse {
+        val startTime = System.currentTimeMillis()
 
-        ApiClient apiClient = apiClientFactory.getApiClient(partnerCode);
-        CryptoService cryptoService = cryptoFactory.getCryptoService(partnerCode);
-        String path = partnerApiProperties.getConfig(partnerCode).getPath();
+        val apiClient = apiClientFactory.getApiClient(partnerCode)
+        val cryptoService = cryptoFactory.getCryptoService(partnerCode)
+        val path = partnerApiProperties.getConfig(partnerCode).path
 
-        try {
-            LimitRequestPlainText limitRequestPlainText = LimitRequestPlainText.builder()
-                    .data(Data.builder()
-                            .rrn(requestParam.getRrno())
-                            .name(requestParam.getName())
-                            .jobType(requestParam.getJobType().name())
-                            .joinDate(requestParam.getJoinDate())
-                            .corporateName(requestParam.getJobName())
-                            .automobileNumber(requestParam.getCarNo())
-                            .build()
-                    )
-                    .requestProducts(
-                            requestParam.getRequestProducts().stream()
-                                    .map(requestProduct -> RequestProduct.builder()
-                                            .loanReqNo(requestProduct.getLoReqtNo())
-                                            .loanProductId(requestProduct.getProductCode())
-                                            .build()
-                                    )
-                                    .toList()
-                    )
-                    .build();
+        return try {
+            val limitRequestPlainText = LimitRequestPlainText(
+                data = Data(
+                    rrn = requestParam.rrno,
+                    name = requestParam.name,
+                    jobType = requestParam.jobType?.name,
+                    joinDate = requestParam.joinDate,
+                    corporateName = requestParam.jobName,
+                    automobileNumber = requestParam.carNo
+                ),
+                requestProducts =
+                    requestParam.requestProducts.map { requestProduct ->
+                        RequestProduct(
+                            loanReqNo = requestProduct.loReqtNo,
+                            loanProductId = requestProduct.productCode
+                        )
+                    }
+            )
 
             // Tossbank는 json 전체 암호화
-            String plainText = objectMapper.writeValueAsString(limitRequestPlainText);
-            TossbankLimitRequest request = TossbankLimitRequest.builder()
-                    .encrytedData(cryptoService.encrypt(plainText))
-                    .build();
+            val plainText = objectMapper.writeValueAsString(limitRequestPlainText)
+            val request = TossbankLimitRequest(encrytedData = cryptoService.encrypt(plainText))
 
             //External API
-            TossbankLimitResponse result = apiClient.post(
-                    partnerCode,
-                    path,
-                    request,
-                    TossbankLimitResponse.class
-            );
+            val result = apiClient.post(
+                partnerCode,
+                path,
+                request,
+                TossbankLimitResponse::class.java
+            )
 
-            long resTimeMs = System.currentTimeMillis() - startTime;
+            val resTimeMs = System.currentTimeMillis() - startTime
 
-            if(!"SUCCESS".equals(result.resultCode())) {
-                log.warn("[{}] 한도조회 실패. resultCode={}", PartnerCode.TOSS_BANK, result.resultCode());
-                return LoanLimitAdaptorResponse.fail(
-                        PartnerCode.TOSS_BANK,
-                        result.resultCode(),
-                        resTimeMs
-                );
+            if ("SUCCESS" != result.resultCode) {
+                log.warn("[{}] 한도조회 실패. resultCode={}", PartnerCode.TOSS_BANK, result.resultCode)
+                fail(
+                    partnerCode = PartnerCode.TOSS_BANK,
+                    failReason = result.resultCode,
+                    resTimeMs = resTimeMs
+                )
             }
 
-            log.info("[{}] 한도조회 성공, resTimeMs={}", PartnerCode.TOSS_BANK, resTimeMs);
+            log.info("[{}] 한도조회 성공, resTimeMs={}", PartnerCode.TOSS_BANK, resTimeMs)
 
-            return LoanLimitAdaptorResponse.success(
-                    PartnerCode.TOSS_BANK,
-                    resTimeMs
-            );
-        }
-        catch (CallNotPermittedException e) {
+            success(
+                partnerCode = PartnerCode.TOSS_BANK,
+                resTimeMs = resTimeMs
+            )
+        } catch (_: CallNotPermittedException) {
             // Circuit Breaker OPEN Fallback
             // -> 해당 금융사 격리, 나머지 금융사 정상 진행 (Partial Success)
-            long resTimeMs = System.currentTimeMillis() - startTime;
-            log.warn("[{}] Circuit Breaker OPEN -> Fallback 실행", PartnerCode.TOSS_BANK);
-            return LoanLimitAdaptorResponse.fail(
-                    PartnerCode.TOSS_BANK,
-                    "CB_OPEN",
-                    resTimeMs
-            );
-        }
-        catch (Exception e) {
-            long resTimeMs = System.currentTimeMillis() - startTime;
-            log.error("[{}] 한도조회 오류 발생", PartnerCode.TOSS_BANK, e);
-            return LoanLimitAdaptorResponse.fail(PartnerCode.TOSS_BANK, e.getMessage(), resTimeMs);
+            val resTimeMs = System.currentTimeMillis() - startTime
+            log.warn("[{}] Circuit Breaker OPEN -> Fallback 실행", PartnerCode.TOSS_BANK)
+            fail(
+                partnerCode = PartnerCode.TOSS_BANK,
+                failReason = "CB_OPEN",
+                resTimeMs = resTimeMs
+            )
+        } catch (e: Exception) {
+            val resTimeMs = System.currentTimeMillis() - startTime
+            log.error("[{}] 한도조회 오류 발생", PartnerCode.TOSS_BANK, e)
+            fail(
+                partnerCode = PartnerCode.TOSS_BANK,
+                failReason = e.message ?: "Unknown error",
+                resTimeMs = resTimeMs
+            )
         }
     }
 }
