@@ -1,118 +1,109 @@
-package com.ghyinc.finance.global.outbox.service;
+package com.ghyinc.finance.global.outbox.service
 
-import com.ghyinc.finance.global.outbox.entity.OutboxEvent;
-import com.ghyinc.finance.global.outbox.entity.OutboxStatus;
-import com.ghyinc.finance.global.outbox.event.OutboxCreatedEvent;
-import com.ghyinc.finance.global.outbox.repository.OutboxEventRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.SendResult;
-import org.springframework.test.util.ReflectionTestUtils;
+import com.ghyinc.finance.global.outbox.entity.OutboxEvent
+import com.ghyinc.finance.global.outbox.entity.OutboxStatus
+import com.ghyinc.finance.global.outbox.event.OutboxCreatedEvent
+import com.ghyinc.finance.global.outbox.repository.OutboxEventRepository
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.eq
+import org.mockito.BDDMockito.given
+import org.mockito.BDDMockito.then
+import org.mockito.InjectMocks
+import org.mockito.Mock
+import org.mockito.Mockito.mock
+import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.kafka.core.KafkaTemplate
+import org.springframework.kafka.support.SendResult
+import org.springframework.test.util.ReflectionTestUtils
+import java.util.*
+import java.util.concurrent.CompletableFuture
 
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.mock;
-
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(MockitoExtension::class)
 class OutboxEventServiceTest {
     @InjectMocks
-    private OutboxEventService outboxEventService;
+    private lateinit var outboxEventService: OutboxEventService
 
     @Mock
-    private OutboxEventRepository outboxEventRepository;
+    private lateinit var outboxEventRepository: OutboxEventRepository
 
     @Mock
-    private KafkaTemplate<String, String> kafkaTemplate;
+    private lateinit var kafkaTemplate: KafkaTemplate<String, String>
 
-    private OutboxEvent buildPendingOutboxEvent() {
-        OutboxEvent event = OutboxEvent.create(
-                "LoanLimitInquiry",
-                "LL20260410A3F2C891",
-                "LOAN_LIMIT_COMPLETED",
-                "{\"inquiryNo\":\"LL20260410A3F2C891\"}",
-                OutboxStatus.PENDING,
-                null,
-                0
-        );
-        ReflectionTestUtils.setField(event, "id", 1L);
-        return event;
-    }
+    private fun buildPendingOutboxEvent(): OutboxEvent =
+        OutboxEvent().apply {
+            aggregateType = "LoanLimitInquiry"
+            aggregateId = "LL20260410A3F2C891"
+            eventType = "LOAN_LIMIT_COMPLETED"
+            payload = "{\"inquiryNo\":\"LL20260410A3F2C891\"}"
+            status = OutboxStatus.PENDING
+        }.also {
+            ReflectionTestUtils.setField(it, "id", 1L)
+        }
 
     @BeforeEach
-    void setUp() {
+    fun setUp() {
     }
 
     @Test
     @DisplayName("publishAfterCommit - OutboxEvent 조회 후 Kafka 발행")
-    void publishAfterCommit_fetchesOutboxAndPublishes() {
+    fun publishAfterCommit_fetchesOutboxAndPublishes() {
         // given
-        OutboxEvent outboxEvent = this.buildPendingOutboxEvent();
+        val outboxEvent = this.buildPendingOutboxEvent()
         given(outboxEventRepository.findById(1L))
-                .willReturn(Optional.of(outboxEvent));
+            .willReturn(Optional.of(outboxEvent))
 
-        CompletableFuture<SendResult<String, String>> future =
-                CompletableFuture.completedFuture(mock(SendResult.class));
-        given(kafkaTemplate.send(any(), any(), any())).willReturn(future);
+        val future: CompletableFuture<SendResult<String, String>> =
+            CompletableFuture.completedFuture(mock(SendResult::class.java) as SendResult<String, String>)
+
+        given(kafkaTemplate.send(any(), any(), any())).willReturn(future)
 
         // when
-        outboxEventService.publishAfterCommit(new OutboxCreatedEvent(1L));
+        outboxEventService.publishAfterCommit(OutboxCreatedEvent(1L))
 
-        // then
         then(kafkaTemplate).should().send(
-                eq("loan-limit-completed"),
-                eq("LL20260410A3F2C891"),
-                any()
-        );
+            eq("loan-limit-completed"),
+            eq("LL20260410A3F2C891"),
+            any()
+        )
     }
 
     @Test
     @DisplayName("publishToKafka 성공 - OutboxEvent PUBLISHED UPDATE")
-    void publishToKafka_success_markAsPublished() {
+    fun publishToKafka_success_markAsPublished() {
         // given
-        OutboxEvent outboxEvent = this.buildPendingOutboxEvent();
+        val outboxEvent = this.buildPendingOutboxEvent()
 
-        CompletableFuture<SendResult<String, String>> future =
-                CompletableFuture.completedFuture(mock(SendResult.class));
-        given(kafkaTemplate.send(any(), any(), any())).willReturn(future);
-
+        val future: CompletableFuture<SendResult<String, String>> =
+            CompletableFuture.completedFuture(mock(SendResult::class.java) as SendResult<String, String>)
+        given(kafkaTemplate.send(any(), any(), any())).willReturn(future)
         // when
-        outboxEventService.publishToKafka(outboxEvent);
+        outboxEventService.publishToKafka(outboxEvent)
 
-        // then
-        assertThat(outboxEvent.getStatus()).isEqualTo(OutboxStatus.PUBLISHED);
-        assertThat(outboxEvent.getPublishedAt()).isNotNull();
+        assertThat(outboxEvent.status).isEqualTo(OutboxStatus.PUBLISHED)
+        assertThat(outboxEvent.publishedAt).isNotNull()
     }
 
     @Test
     @DisplayName("publishAfterCommit 실패 - OutboxEvent PENDING 유지")
-    void publishAfterCommit_failure_keepPending() {
+    fun publishAfterCommit_failure_keepPending() {
         // given
-        OutboxEvent outboxEvent = this.buildPendingOutboxEvent();
+        val outboxEvent = this.buildPendingOutboxEvent()
 
-        CompletableFuture<SendResult<String, String>> failureFuture =
-                new CompletableFuture<>();
+        val failureFuture = CompletableFuture<SendResult<String, String>>()
         failureFuture.completeExceptionally(
-                new RuntimeException("Kafka 브로커 장애"));
-        given(kafkaTemplate.send(any(), any(), any()))
-                .willReturn(failureFuture);     // whenComplete의 ex로 전달
+            RuntimeException("Kafka 브로커 장애")
+        )
+        given(kafkaTemplate.send(any(), any(), any())).willReturn(failureFuture)        // whenComplete의 ex로 전달
 
         // when
-        outboxEventService.publishToKafka(outboxEvent);
+        outboxEventService.publishToKafka(outboxEvent)
 
         // then - PENDING 유지 (배치가 재시도)
-        assertThat(outboxEvent.getStatus()).isEqualTo(OutboxStatus.PENDING);
+        assertThat(outboxEvent.status).isEqualTo(OutboxStatus.PENDING)
     }
-
 }
