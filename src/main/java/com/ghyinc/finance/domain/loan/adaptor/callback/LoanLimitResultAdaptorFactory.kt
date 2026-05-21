@@ -1,21 +1,14 @@
-package com.ghyinc.finance.domain.loan.adaptor.callback;
+package com.ghyinc.finance.domain.loan.adaptor.callback
 
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import lombok.RequiredArgsConstructor;
-import org.apache.kafka.common.errors.InvalidRequestException;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import org.apache.kafka.common.errors.InvalidRequestException
+import org.springframework.stereotype.Component
 
 @Component
-@RequiredArgsConstructor
-public class LoanLimitResultAdaptorFactory {
-    private final List<LoanLimitResultAdaptor> adaptors;
-
-    public LoanLimitResultAdaptor getAdaptor(PartnerCode partnerCode) {
-        return adaptors.stream()
-                .filter(adaptor -> adaptor.supports(partnerCode))
-                .findFirst()
-                .orElseThrow(() -> new InvalidRequestException("콜백 Adaptor 없음: " + partnerCode));
-    }
+class LoanLimitResultAdaptorFactory(
+    private val adaptors: List<LoanLimitResultAdaptor>
+) {
+    fun getAdaptor(partnerCode: PartnerCode): LoanLimitResultAdaptor =
+        adaptors.firstOrNull { it.supports(partnerCode) }
+            ?: throw InvalidRequestException("지원하지 않는 금융사입니다: $partnerCode")
 }
