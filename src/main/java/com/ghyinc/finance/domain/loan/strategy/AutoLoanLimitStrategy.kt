@@ -1,101 +1,92 @@
-package com.ghyinc.finance.domain.loan.strategy;
+package com.ghyinc.finance.domain.loan.strategy
 
-import com.ghyinc.finance.domain.external.nice.dto.NiceDnrResult;
-import com.ghyinc.finance.domain.external.nice.service.NiceDnrService;
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest;
-import com.ghyinc.finance.domain.loan.dto.ExternalDataContext;
-import com.ghyinc.finance.domain.loan.dto.ExternalDataError;
-import com.ghyinc.finance.domain.loan.dto.LoanLimitRequest;
-import com.ghyinc.finance.domain.loan.enums.LoanType;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import com.ghyinc.finance.domain.loan.repository.PartnerLoanTypeRepository;
-import com.ghyinc.finance.global.common.DateUtils;
-import com.ghyinc.finance.global.exception.ExternalApiFailException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.common.errors.InvalidRequestException;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.Objects;
+import com.ghyinc.finance.domain.external.nice.service.NiceDnrService
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest
+import com.ghyinc.finance.domain.loan.dto.ExternalDataContext
+import com.ghyinc.finance.domain.loan.dto.ExternalDataContext.Companion.ofError
+import com.ghyinc.finance.domain.loan.dto.ExternalDataContext.Companion.ofNiceDnr
+import com.ghyinc.finance.domain.loan.dto.ExternalDataError.Companion.create
+import com.ghyinc.finance.domain.loan.dto.LoanLimitRequest
+import com.ghyinc.finance.domain.loan.enums.LoanType
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import com.ghyinc.finance.domain.loan.repository.PartnerLoanTypeRepository
+import com.ghyinc.finance.global.common.DateUtils.toDateTimeString
+import com.ghyinc.finance.global.exception.ExternalApiFailException
+import lombok.extern.slf4j.Slf4j
+import org.apache.kafka.common.errors.InvalidRequestException
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Component
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
-public class AutoLoanLimitStrategy implements LoanLimitStrategy{
-    private final NiceDnrService niceDnrService;
-    private final PartnerLoanTypeRepository partnerLoanTypeRepository;
+class AutoLoanLimitStrategy(
+    private val niceDnrService: NiceDnrService,
+    private val partnerLoanTypeRepository: PartnerLoanTypeRepository
+): LoanLimitStrategy {
+    private val log = LoggerFactory.getLogger(AutoLoanLimitStrategy::class.java)
 
-    @Override
-    public LoanType getLoanType() {
-        return LoanType.AUTO;
-    }
+    override val loanType: LoanType = LoanType.AUTO
 
-    @Override
-    public List<PartnerCode> getSupportedBanks() {
-        return partnerLoanTypeRepository.findActivePartnerCodeByLoanType(this.getLoanType());
-    }
+    override val supportedBanks: List<PartnerCode>
+        get() = partnerLoanTypeRepository.findActivePartnerCodeByLoanType(this.loanType)
 
-    @Override
-    public void validate(LoanLimitRequest request) {
+    override fun validate(request: LoanLimitRequest) {
         // 차량번호 필수 검증
-        if(Objects.isNull(request.carNo()) || request.carNo().isBlank()) {
-            throw new InvalidRequestException("오토담보 대출은 차량번호가 필수입니다");
+        if (request.carNo.isNullOrBlank()) {
+            throw InvalidRequestException("오토담보 대출은 차량번호가 필수입니다")
         }
     }
 
-    @Override
-    public ExternalDataContext fetchExternalData(LoanLimitRequest request) {
-        try {
-            NiceDnrResult result = niceDnrService.inquireNiceDnr(request.carNo(), request.name());
-            return ExternalDataContext.ofNiceDnr(result);
-        } catch (ExternalApiFailException e) {
-            log.error("Nice DNR 조회 실패. carNo={}", request.carNo(), e);
+    override fun fetchExternalData(request: LoanLimitRequest): ExternalDataContext {
+        return try {
+            val result = niceDnrService.inquireNiceDnr(request.carNo, request.name)
+            ofNiceDnr(result)
+        } catch (e: ExternalApiFailException) {
+            log.error("Nice DNR 조회 실패. carNo={}", request.carNo, e)
 
             // 예외를 던지지 않고 오류 정보만 context에 담아 return
-            return ExternalDataContext.ofError(
-                    "NICE_DNR",
-                    ExternalDataError.create(
-                            "NICE_DNR_ERROR",
-                            e.getMessage()
-                    )
-            );
+            ofError(
+                "NICE_DNR",
+                create(
+                    code = "NICE_DNR_ERROR",
+                    message = e.message
+                )
+            )
         }
     }
 
-    @Override
-    public LoanLimitAdaptorRequest toAdaptorRequest(LoanLimitRequest request, ExternalDataContext externalDataContext) {
-        NiceDnrResult result = externalDataContext.niceDnrResult();
-        return LoanLimitAdaptorRequest.create(
-                request.name(),
-                request.rrno(),
-                request.jobType(),
-                request.jobName(),
-                request.joinDate(),
-                request.loanType(),
-                request.carNo(),
-                "",
-                request.agreePersonalCreditInfo(),
-                DateUtils.toDateTimeString(request.agreePersonalCreditTime()),
-                result.getAutoInfo(),
-                result.getAutoSecondInfo(),
-                null
-        );
+    override fun toAdaptorRequest(
+        request: LoanLimitRequest,
+        externalDataContext: ExternalDataContext
+    ): LoanLimitAdaptorRequest {
+        val result = externalDataContext.niceDnrResult
+        return LoanLimitAdaptorRequest(
+            name = request.name,
+            rrno = request.rrno,
+            jobType = request.jobType,
+            jobName = request.jobName,
+            joinDate = request.joinDate,
+            loanType = request.loanType,
+            carNo = request.carNo,
+            agreePersonalCreditInfo = request.agreePersonalCreditInfo,
+            agreePersonalCreditTime = toDateTimeString(request.agreePersonalCreditTime),
+            autoInfo = result?.autoInfo,
+            autoSecondInfo = result?.autoSecondInfo
+        )
     }
 
-    @Override
-    public boolean requiresExternalData() {
-        return true;
-    }
+    override fun requiresExternalData(): Boolean = true
 
-    @Override
-    public List<PartnerCode> filterAvailablePartners(List<PartnerCode> activePartnerCodes, ExternalDataContext context) {
+    override fun filterAvailablePartners(
+        activePartnerCodes: List<PartnerCode>,
+        context: ExternalDataContext
+    ): List<PartnerCode> {
         // Nice DNR 실패 시 차량정보가 필요한 금융사 제외
-        if(!context.hasNiceDnrError()) {
-            log.warn("Nice DNR 조회 실패로 오토담보 한도조회 불가");
-            return List.of();
+        if (!context.hasNiceDnrError()) {
+            log.warn("Nice DNR 조회 실패로 오토담보 한도조회 불가")
+            return emptyList()
         }
 
-        return activePartnerCodes;
+        return activePartnerCodes
     }
 }

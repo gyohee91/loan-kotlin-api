@@ -1,13 +1,11 @@
-package com.ghyinc.finance.domain.loan.strategy;
+package com.ghyinc.finance.domain.loan.strategy
 
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest;
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse;
-import com.ghyinc.finance.domain.loan.dto.ExternalDataContext;
-import com.ghyinc.finance.domain.loan.dto.LoanLimitRequest;
-import com.ghyinc.finance.domain.loan.enums.LoanType;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-
-import java.util.List;
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse
+import com.ghyinc.finance.domain.loan.dto.ExternalDataContext
+import com.ghyinc.finance.domain.loan.dto.LoanLimitRequest
+import com.ghyinc.finance.domain.loan.enums.LoanType
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
 
 /**
  * 대출 유형별 한도조회 전략 인터페이스
@@ -21,22 +19,22 @@ import java.util.List;
  * Service: 전략 선택하고 어댑터 조율
  *
  */
-public interface LoanLimitStrategy {
+interface LoanLimitStrategy {
     /**
      * 이 전락이 처리하는 대출 유형
      */
-    LoanType getLoanType();
+    val loanType: LoanType
 
     /**
      * 조회 가능 금융사 목록
      * - 대출 유형 별로 지원 금융사가 다를 수 있음.
      * @return
      */
-    List<PartnerCode> getSupportedBanks();
+    val supportedBanks: List<PartnerCode>
 
-    void validate(LoanLimitRequest request);
+    fun validate(request: LoanLimitRequest)
 
-    ExternalDataContext fetchExternalData(LoanLimitRequest request);
+    fun fetchExternalData(request: LoanLimitRequest): ExternalDataContext
 
     /**
      * 서비스 요청을 어댑터 요청으로 변환
@@ -44,13 +42,16 @@ public interface LoanLimitStrategy {
      * @param request
      * @return
      */
-    LoanLimitAdaptorRequest toAdaptorRequest(LoanLimitRequest request, ExternalDataContext externalDataContext);
+    fun toAdaptorRequest(
+        request: LoanLimitRequest,
+        externalDataContext: ExternalDataContext
+    ): LoanLimitAdaptorRequest
 
     /**
      * 외부 API 조회 필요 여부
      * @return
      */
-    boolean requiresExternalData();
+    fun requiresExternalData(): Boolean
 
     /**
      * 외부 API 실패 시 진행 가능한 금융사 필터링
@@ -58,9 +59,10 @@ public interface LoanLimitStrategy {
      * @param context
      * @return
      */
-    default List<PartnerCode> filterAvailablePartners(List<PartnerCode> activePartnerCodes, ExternalDataContext context) {
-        return activePartnerCodes;  // 기본: 전체 진행
-    }
+    fun filterAvailablePartners(
+        activePartnerCodes: List<PartnerCode>,
+        context: ExternalDataContext
+    ): List<PartnerCode> = activePartnerCodes
 
     /**
      * 어댑터 응답 후처리
@@ -69,7 +71,5 @@ public interface LoanLimitStrategy {
      * @param response
      * @return
      */
-    default LoanLimitAdaptorResponse postProcess(LoanLimitAdaptorResponse response) {
-        return response;
-    }
+    fun postProcess(response: LoanLimitAdaptorResponse): LoanLimitAdaptorResponse = response
 }
