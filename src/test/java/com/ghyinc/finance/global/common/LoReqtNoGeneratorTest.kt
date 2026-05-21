@@ -1,52 +1,49 @@
-package com.ghyinc.finance.global.common;
+package com.ghyinc.finance.global.common
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-class LoReqtNoGeneratorTest {
-    private LoReqtNoGenerator generator;
+internal class LoReqtNoGeneratorTest {
+    private lateinit var generator: LoReqtNoGenerator
 
     @BeforeEach
-    void setUp() {
-        generator = new LoReqtNoGenerator();
+    fun setUp() {
+        generator = LoReqtNoGenerator()
     }
 
     @Test
-    void generate() {
-        String loReqtNo = generator.generate("LL");
-        System.out.println(loReqtNo);
+    fun generate() {
+        val loReqtNo = generator.generate("LL")
+        println(loReqtNo)
     }
 
     @Test
     @DisplayName("동시 요청 1000건 - 중복없음")
-    void generate_noDuplicate() throws InterruptedException {
-        int threadCount = 1000;
-        ExecutorService executorService = Executors.newFixedThreadPool(32);
-        CountDownLatch latch = new CountDownLatch(threadCount);
-        Set<String> results = ConcurrentHashMap.newKeySet();
+    @Throws(InterruptedException::class)
+    fun generate_noDuplicate() {
+        val threadCount = 1000
+        val executorService = Executors.newFixedThreadPool(32)
+        val latch = CountDownLatch(threadCount)
+        val results = ConcurrentHashMap.newKeySet<String>()
 
-        for(int i = 0; i < threadCount; i ++) {
-            executorService.submit(() -> {
+        repeat (threadCount) {
+            executorService.submit {
                 try {
-                    results.add(generator.generate("LL"));
+                    results.add(generator.generate("LL"))
                 } finally {
-                    latch.countDown();
+                    latch.countDown()
                 }
-            });
+            }
         }
 
-        latch.await();
-        executorService.shutdown();
+        latch.await()
+        executorService.shutdown()
 
-        assertThat(results).hasSize(threadCount);
+        assertThat(results).hasSize(threadCount)
     }
 }
