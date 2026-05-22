@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest;
 import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse;
 import com.ghyinc.finance.domain.loan.adaptor.impl.LoanLimitAdaptor;
-import com.ghyinc.finance.global.event.LoanLimitInquiryCreateEvent;
+import com.ghyinc.finance.global.event.LoanLimitInquiryCreatedEvent;
 import com.ghyinc.finance.domain.loan.dto.RequestProduct;
 import com.ghyinc.finance.domain.loan.entity.LoanLimitInquiry;
 import com.ghyinc.finance.domain.loan.entity.LoanLimitProductResult;
@@ -71,7 +71,7 @@ public class LoanLimitSenderService {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async("loanLimitExecutor")
     public void inquiry(
-            LoanLimitInquiryCreateEvent inquiryCreateEvent
+            LoanLimitInquiryCreatedEvent inquiryCreateEvent
     ) {
         long id = inquiryCreateEvent.getId();
         List<PartnerCode> partnerCodes = inquiryCreateEvent.getActivePartnerCodes();

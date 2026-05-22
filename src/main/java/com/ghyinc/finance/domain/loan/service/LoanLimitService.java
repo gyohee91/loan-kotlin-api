@@ -10,7 +10,7 @@ import com.ghyinc.finance.domain.loan.repository.LoanLimitInquiryRepository;
 import com.ghyinc.finance.domain.loan.repository.LoanLimitProductResultRepository;
 import com.ghyinc.finance.domain.loan.strategy.LoanLimitStrategy;
 import com.ghyinc.finance.global.common.LoReqtNoGenerator;
-import com.ghyinc.finance.global.event.LoanLimitInquiryCreateEvent;
+import com.ghyinc.finance.global.event.LoanLimitInquiryCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.errors.InvalidRequestException;
@@ -109,7 +109,7 @@ public class LoanLimitService {
         // @Async 적용을 위해 별도 Bean(LoanLimitSenderService)으로 분리
         //loanLimitSenderService.inquiry(inquiry.getId(), activePartnerCodes, adaptorRequest);
         applicationEventPublisher.publishEvent(
-                new LoanLimitInquiryCreateEvent(inquiry.getId(), activePartnerCodes, adaptorRequest)
+                LoanLimitInquiryCreatedEvent.create(inquiry.getId(), activePartnerCodes, adaptorRequest)
         );
 
         return LoanLimitInquiryResponse.from(inquiry);
