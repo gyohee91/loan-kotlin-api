@@ -6,7 +6,6 @@ import com.ghyinc.finance.domain.external.nice.dto.AutoSecondInfo
 import com.ghyinc.finance.domain.loan.dto.RequestProduct
 import com.ghyinc.finance.domain.loan.enums.JobType
 import com.ghyinc.finance.domain.loan.enums.LoanType
-import lombok.Builder
 
 data class LoanLimitAdaptorRequest(
     val requestProducts: List<RequestProduct> = emptyList(),
@@ -27,6 +26,7 @@ data class LoanLimitAdaptorRequest(
     companion object {
         @JvmStatic
         fun create(
+            requestProducts: List<RequestProduct> = emptyList(),
             name: String,
             rrno: String,
             jobType: JobType? = null,
@@ -42,6 +42,7 @@ data class LoanLimitAdaptorRequest(
             respData: RespData? = null
         ): LoanLimitAdaptorRequest =
             LoanLimitAdaptorRequest(
+                requestProducts = requestProducts,
                 name = name,
                 rrno = rrno,
                 jobType = jobType,
@@ -58,7 +59,6 @@ data class LoanLimitAdaptorRequest(
             )
     }
 
-    @JvmOverloads
     fun withRequestProducts(requestProducts: List<RequestProduct>): LoanLimitAdaptorRequest =
         this.copy(requestProducts = requestProducts)
 }

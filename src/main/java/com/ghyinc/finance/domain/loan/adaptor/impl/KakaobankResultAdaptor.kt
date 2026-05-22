@@ -1,84 +1,76 @@
-package com.ghyinc.finance.domain.loan.adaptor.impl;
+package com.ghyinc.finance.domain.loan.adaptor.impl
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.ghyinc.finance.domain.loan.adaptor.callback.LoanLimitResultAdaptor;
-import com.ghyinc.finance.domain.loan.dto.LoanLimitResultRequest;
-import com.ghyinc.finance.domain.loan.dto.ResultResponse;
-import com.ghyinc.finance.domain.loan.enums.LoanLimitResultCode;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.annotation.JsonNaming
+import com.ghyinc.finance.domain.loan.adaptor.callback.LoanLimitResultAdaptor
+import com.ghyinc.finance.domain.loan.dto.LoanLimitResultRequest
+import com.ghyinc.finance.domain.loan.dto.LoanLimitResultRequest.LoanApplyResult
+import com.ghyinc.finance.domain.loan.dto.ResultResponse
+import com.ghyinc.finance.domain.loan.enums.LoanLimitResultCode
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import org.springframework.stereotype.Component
 
-import java.util.List;
-import java.util.Map;
-
-@Slf4j
 @Component
-@RequiredArgsConstructor
-public class KakaobankResultAdaptor implements LoanLimitResultAdaptor {
-    private final ObjectMapper objectMapper;
+class KakaobankResultAdaptor(
+    private val objectMapper: ObjectMapper
+) : LoanLimitResultAdaptor {
 
-    private static final Map<String, LoanLimitResultCode> RESULT_CODE_MAP = Map.of(
-            "CP0000", LoanLimitResultCode.SUCCESS,
-            "CP1009", LoanLimitResultCode.LIMIT_DENIED,
-            "CP1011", LoanLimitResultCode.DUPLICATE_REQUEST,
-            "CP4011", LoanLimitResultCode.INVALID_PRODUCT,
-            "CP5001", LoanLimitResultCode.PARTNER_SYSTEM_ERROR,
-            "CP5002", LoanLimitResultCode.TIMEOUT,
-            "CP5000", LoanLimitResultCode.UNKNOWN_ERROR
-    );
+    private data class KakaobankResultRequest(
+        val products: List<Product>
+    )
 
-    private record KakaobankResultRequest(
-            List<Product> products
-    ) {}
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
+    private data class Product(
+        val iqryDmanNo: String,
+        val alncGdsUnqCd: String,
+        val rsltCd: String,
+        val loanLimitAmt: Long,
+        val lastLoanIntr: Double,
+        val loanTrmMcnt: String
+    )
 
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    private record Product(
-            String iqryDmanNo,
-            String alncGdsUnqCd,
-            String rsltCd,
-            long loanLimitAmt,
-            double lastLoanIntr,
-            String loanTrmMcnt
-    ) {}
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
+    private data class KakaobankResultResponse(
+        val rsltCd: String
+    ) : ResultResponse
 
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    private record KakaobankResultResponse(
-            String rsltCd
-    ) implements ResultResponse {}
+    override fun supports(partnerCode: PartnerCode): Boolean =
+        partnerCode == PartnerCode.KAKAO_BANK
 
-    @Override
-    public boolean supports(PartnerCode partnerCode) {
-        return partnerCode == PartnerCode.KAKAO_BANK;
-    }
+    override fun convert(body: JsonNode): LoanLimitResultRequest {
+        val kakaobankRequest: KakaobankResultRequest =
+            objectMapper.convertValue(body, KakaobankResultRequest::class.java)
 
-    @Override
-    public LoanLimitResultRequest convert(JsonNode body) {
-        KakaobankResultRequest kakaobankRequest = objectMapper.convertValue(body, KakaobankResultRequest.class);
-
-        List<LoanLimitResultRequest.LoanApplyResult> preScrResultLists = kakaobankRequest.products().stream()
-                .map(item ->
-                        LoanLimitResultRequest.LoanApplyResult.create(
-                                item.iqryDmanNo,
-                                item.alncGdsUnqCd,
-                                RESULT_CODE_MAP.getOrDefault(item.rsltCd, LoanLimitResultCode.UNKNOWN_ERROR),
-                                item.loanLimitAmt,
-                                item.lastLoanIntr
-                        )
+        val preScrResultLists = kakaobankRequest.products.map { item ->
+                LoanApplyResult.create(
+                    loReqtNo = item.iqryDmanNo,
+                    productCode = item.alncGdsUnqCd,
+                    resultCode = RESULT_CODE_MAP.getOrDefault(item.rsltCd, LoanLimitResultCode.UNKNOWN_ERROR),
+                    amount = item.loanLimitAmt,
+                    interestRate = item.lastLoanIntr
                 )
-                .toList();
+            }
 
-        return LoanLimitResultRequest.create(preScrResultLists);
+        return LoanLimitResultRequest.create(preScrResultLists)
     }
 
-    @Override
-    public ResultResponse buildResponse(boolean success, String resultMessage) {
-        return new KakaobankResultResponse(
-                success ? "CP0000" : "CP9999"
-        );
+    override fun buildResponse(success: Boolean, resultMessage: String): ResultResponse {
+        return KakaobankResultResponse(
+            if (success) "CP0000" else "CP9999"
+        )
+    }
+
+    companion object {
+        private val RESULT_CODE_MAP = mapOf(
+            "CP0000" to LoanLimitResultCode.SUCCESS,
+            "CP1009" to LoanLimitResultCode.LIMIT_DENIED,
+            "CP1011" to LoanLimitResultCode.DUPLICATE_REQUEST,
+            "CP4011" to LoanLimitResultCode.INVALID_PRODUCT,
+            "CP5001" to LoanLimitResultCode.PARTNER_SYSTEM_ERROR,
+            "CP5002" to LoanLimitResultCode.TIMEOUT,
+            "CP5000" to LoanLimitResultCode.UNKNOWN_ERROR
+        )
     }
 }

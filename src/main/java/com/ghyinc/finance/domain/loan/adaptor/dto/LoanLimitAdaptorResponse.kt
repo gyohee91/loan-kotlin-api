@@ -24,7 +24,7 @@ data class LoanLimitAdaptorResponse(
         @JvmStatic
         fun fail(
             partnerCode: PartnerCode,
-            failReason: String,
+            failReason: String? = null,
             resTimeMs: Long
         ): LoanLimitAdaptorResponse =
             LoanLimitAdaptorResponse(

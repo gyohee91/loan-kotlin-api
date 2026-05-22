@@ -1,80 +1,76 @@
-package com.ghyinc.finance.domain.loan.adaptor.impl;
+package com.ghyinc.finance.domain.loan.adaptor.impl
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ghyinc.finance.domain.loan.adaptor.callback.LoanLimitResultAdaptor;
-import com.ghyinc.finance.domain.loan.dto.LoanLimitResultRequest;
-import com.ghyinc.finance.domain.loan.dto.ResultResponse;
-import com.ghyinc.finance.domain.loan.enums.LoanLimitResultCode;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.Map;
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.ghyinc.finance.domain.loan.adaptor.callback.LoanLimitResultAdaptor
+import com.ghyinc.finance.domain.loan.dto.LoanLimitResultRequest
+import com.ghyinc.finance.domain.loan.dto.LoanLimitResultRequest.LoanApplyResult
+import com.ghyinc.finance.domain.loan.dto.ResultResponse
+import com.ghyinc.finance.domain.loan.enums.LoanLimitResultCode
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import org.springframework.stereotype.Component
+import java.util.Map
 
 @Component
-@RequiredArgsConstructor
-public class TossbankResultAdaptor implements LoanLimitResultAdaptor {
-    private final ObjectMapper objectMapper;
+class TossbankResultAdaptor(
+    private val objectMapper: ObjectMapper
+) : LoanLimitResultAdaptor {
 
-    private static final Map<String, LoanLimitResultCode> RESULT_CODE_MAP = Map.of(
-            "TLA00", LoanLimitResultCode.SUCCESS,
-            "TLA04", LoanLimitResultCode.LIMIT_DENIED,
-            "TLA06", LoanLimitResultCode.DUPLICATE_REQUEST,
-            "TLA02", LoanLimitResultCode.INVALID_PRODUCT,
-            "TLA10", LoanLimitResultCode.PARTNER_SYSTEM_ERROR,
-            "TLA08", LoanLimitResultCode.TIMEOUT,
-            "TLA99", LoanLimitResultCode.UNKNOWN_ERROR
-    );
+    private data class TossbankResultRequest(
+        val preScreeningResult: List<PreScreeningResult>
+    )
 
-    private record TossbankResultRequest(
-            List<PreScreeningResult> preScreeningResult
-    ) {}
+    private data class PreScreeningResult(
+        val result: String,
+        val loanReqNo: String,
+        val loanProductId: String,
+        val interestRate: Double,
+        val amount: Long
+    )
 
-    private record PreScreeningResult(
-            String result,
-            String loanReqNo,
-            String loanProductId,
-            double interestRate,
-            long amount
-    ) {}
+    private data class TossbankResultResponse(
+        val code: String,
+        val data: Map<String, Any>?
+    ) : ResultResponse
 
-    private record TossbankResultResponse(
-            String code,
-            Map<String, Object> data
-    ) implements ResultResponse {}
+    override fun supports(partnerCode: PartnerCode): Boolean =
+        partnerCode == PartnerCode.TOSS_BANK
 
-    @Override
-    public boolean supports(PartnerCode partnerCode) {
-        return partnerCode == PartnerCode.TOSS_BANK;
+
+    override fun convert(body: JsonNode): LoanLimitResultRequest {
+        val tossbankRequest: TossbankResultRequest =
+            objectMapper.convertValue(body, TossbankResultRequest::class.java)
+
+        val preScrResultLists =
+            tossbankRequest.preScreeningResult.map { item ->
+                LoanApplyResult.create(
+                    loReqtNo = item.loanReqNo,
+                    productCode = item.loanProductId,
+                    resultCode = RESULT_CODE_MAP.getOrDefault(item.result, LoanLimitResultCode.UNKNOWN_ERROR),
+                    amount = item.amount,
+                    interestRate = item.interestRate
+                )
+            }
+
+        return LoanLimitResultRequest.create(preScrResultLists)
     }
 
-    @Override
-    public LoanLimitResultRequest convert(JsonNode body) {
-        TossbankResultRequest tossbankRequest = objectMapper.convertValue(body, TossbankResultRequest.class);
-
-        List<LoanLimitResultRequest.LoanApplyResult> preScrResultLists =
-                tossbankRequest.preScreeningResult().stream()
-                        .map(item ->
-                                LoanLimitResultRequest.LoanApplyResult.create(
-                                        item.loanReqNo,
-                                        item.loanProductId,
-                                        RESULT_CODE_MAP.getOrDefault(item.result, LoanLimitResultCode.UNKNOWN_ERROR),
-                                        item.amount,
-                                        item.interestRate
-                                )
-                        )
-                        .toList();
-
-        return LoanLimitResultRequest.create(preScrResultLists);
+    override fun buildResponse(success: Boolean, resultMessage: String): ResultResponse {
+        return TossbankResultResponse(
+            code = if (success) "TEL000" else "TEL999",
+            data = null
+        )
     }
 
-    @Override
-    public ResultResponse buildResponse(boolean success, String resultMessage) {
-        return new TossbankResultResponse(
-                success ? "TEL000" : "TEL999",
-                null
-        );
+    companion object {
+        private val RESULT_CODE_MAP = mapOf(
+            "TLA00" to LoanLimitResultCode.SUCCESS,
+            "TLA04" to LoanLimitResultCode.LIMIT_DENIED,
+            "TLA06" to LoanLimitResultCode.DUPLICATE_REQUEST,
+            "TLA02" to LoanLimitResultCode.INVALID_PRODUCT,
+            "TLA10" to LoanLimitResultCode.PARTNER_SYSTEM_ERROR,
+            "TLA08" to LoanLimitResultCode.TIMEOUT,
+            "TLA99" to LoanLimitResultCode.UNKNOWN_ERROR
+        )
     }
 }
