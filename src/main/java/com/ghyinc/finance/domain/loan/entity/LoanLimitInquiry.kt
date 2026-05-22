@@ -24,11 +24,11 @@ class LoanLimitInquiry: BaseTimeEntity() {
 
     @Column(nullable = false, unique = true)
     @Comment("업무 식별번호")
-    var inquiryNo: String? = null      // 외부 노출용 (FE 폴링, 콜백 연결, 이력 조회 KEY)
+    var inquiryNo: String = ""      // 외부 노출용 (FE 폴링, 콜백 연결, 이력 조회 KEY)
 
     @Column(nullable = false)
     @Comment("고객번호")
-    var userId: Long? = null
+    var userId: Long = 0L
 
     @Comment("고객명")
     var name: String? = null

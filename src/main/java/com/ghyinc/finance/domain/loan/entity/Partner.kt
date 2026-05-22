@@ -44,7 +44,7 @@ class Partner : BaseTimeEntity() {
     @Comment("공개키")
     var publicKey: String? = null
 
-    @Column(length = 1616)
+    @Column(length = 1624)
     @Comment("개인키")
     var privateKey: String? = null
 
