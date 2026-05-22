@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest;
 import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse;
 import com.ghyinc.finance.domain.loan.adaptor.impl.LoanLimitAdaptor;
+import com.ghyinc.finance.global.event.LoanLimitInquiryCreateEvent;
 import com.ghyinc.finance.domain.loan.dto.RequestProduct;
 import com.ghyinc.finance.domain.loan.entity.LoanLimitInquiry;
 import com.ghyinc.finance.domain.loan.entity.LoanLimitProductResult;
@@ -30,7 +31,8 @@ import org.slf4j.MDC;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.List;
 import java.util.Map;
@@ -66,13 +68,15 @@ public class LoanLimitSenderService {
      * 한 금융사의 실패가 다른 금융사 조회에 영향을 주지 않음.
      * 전용 스레드 풀을 사용하여 외부 I/O가 공통 스레드 풀을 점유하지 않도록 격리
      */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async("loanLimitExecutor")
-    @Transactional
     public void inquiry(
-            Long id,
-            List<PartnerCode> partnerCodes,
-            LoanLimitAdaptorRequest adaptorRequest
+            LoanLimitInquiryCreateEvent inquiryCreateEvent
     ) {
+        long id = inquiryCreateEvent.getId();
+        List<PartnerCode> partnerCodes = inquiryCreateEvent.getActivePartnerCodes();
+        LoanLimitAdaptorRequest adaptorRequest = inquiryCreateEvent.getAdaptorRequest();
+        
         // 새 트랜잭션에서 inquiry 조회 (호출 측 트랜잭션과 완전 분리)
         LoanLimitInquiry loanLimitInquiry = loanLimitInquiryRepository.findById(id)
                 .orElseThrow(() -> new InvalidRequestException("존재하지 않는 조회 이력: " + id));
