@@ -1,20 +1,22 @@
-package com.ghyinc.finance.global.client;
+package com.ghyinc.finance.global.client
 
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import com.ghyinc.finance.global.common.ConnectionType
+import org.springframework.stereotype.Component
 
 @Component
-@RequiredArgsConstructor
-public class ApiClientFactory {
-    private final RestApiClient restApiClient;
-    private final LeaseLineApiClient leaseLineApiClient;
+class ApiClientFactory(
+    private val restApiClient: RestApiClient,
+    private val leaseLineApiClient: LeaseLineApiClient
+) {
 
-    public ApiClient getApiClient(PartnerCode partnerCode) {
-        return switch (partnerCode.getConnectionType()) {
-            case REST -> restApiClient;             // REST-API
-            case LEASE_LINE -> leaseLineApiClient;  // 전용선
-            case SOAP -> null;                      // SOAP
-        };
-    }
+    fun getApiClient(partnerCode: PartnerCode): ApiClient =
+        when (partnerCode.connectionType) {
+            ConnectionType.REST -> restApiClient
+            ConnectionType.LEASE_LINE -> leaseLineApiClient
+            ConnectionType.SOAP -> throw UnsupportedOperationException(
+                "위 방식은 아직 지원하지 않습니다: $partnerCode"
+            )
+        }
+
 }
