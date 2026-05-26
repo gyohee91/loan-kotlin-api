@@ -41,7 +41,7 @@ class LoanLimitProductResult : BaseTimeEntity() {
     var amount: Long? = null
 
     @Comment("금리")
-    var interestRate = 0.0
+    var interestRate: Double? = null
 
     fun updateResult(resultCode: LoanLimitResultCode?, amount: Long, interestRate: Double) {
         this.status = PartnerInquiryStatus.SUCCESS
@@ -71,8 +71,8 @@ class LoanLimitProductResult : BaseTimeEntity() {
             productCode: String,
             status: PartnerInquiryStatus,
             resultCode: LoanLimitResultCode? = null,
-            amount: Long,
-            interestRate: Double
+            amount: Long? = null,
+            interestRate: Double? = null
         ): LoanLimitProductResult {
             val entity = LoanLimitProductResult()
             entity.loanLimitInquiry = loanLimitInquiry

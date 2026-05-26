@@ -1,249 +1,215 @@
-package com.ghyinc.finance.domain.loan.service;
+package com.ghyinc.finance.domain.loan.service
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest;
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse;
-import com.ghyinc.finance.domain.loan.adaptor.impl.LoanLimitAdaptor;
-import com.ghyinc.finance.global.event.LoanLimitInquiryCreatedEvent;
-import com.ghyinc.finance.domain.loan.dto.RequestProduct;
-import com.ghyinc.finance.domain.loan.entity.LoanLimitInquiry;
-import com.ghyinc.finance.domain.loan.entity.LoanLimitProductResult;
-import com.ghyinc.finance.domain.loan.entity.LoanLimitResult;
-import com.ghyinc.finance.domain.loan.enums.InquiryStatus;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import com.ghyinc.finance.domain.loan.enums.PartnerInquiryStatus;
-import com.ghyinc.finance.domain.loan.factory.LoanLimitAdaptorFactory;
-import com.ghyinc.finance.domain.loan.repository.LoanLimitInquiryRepository;
-import com.ghyinc.finance.domain.loan.repository.ProductRepository;
-import com.ghyinc.finance.global.common.LoReqtNoGenerator;
-import com.ghyinc.finance.global.event.LoanLimitCompletedEvent;
-import com.ghyinc.finance.global.event.impl.KafkaLoanLimitEventPublisher;
-import com.ghyinc.finance.global.event.impl.SpringLoanLimitEventPublisher;
-import com.ghyinc.finance.global.outbox.entity.OutboxEvent;
-import com.ghyinc.finance.global.outbox.entity.OutboxStatus;
-import com.ghyinc.finance.global.outbox.event.OutboxCreatedEvent;
-import com.ghyinc.finance.global.outbox.repository.OutboxEventRepository;
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.common.errors.InvalidRequestException;
-import org.slf4j.MDC;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse
+import com.ghyinc.finance.domain.loan.adaptor.impl.LoanLimitAdaptor
+import com.ghyinc.finance.domain.loan.dto.RequestProduct
+import com.ghyinc.finance.domain.loan.entity.LoanLimitProductResult
+import com.ghyinc.finance.domain.loan.entity.LoanLimitResult
+import com.ghyinc.finance.domain.loan.enums.InquiryStatus
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import com.ghyinc.finance.domain.loan.enums.PartnerInquiryStatus
+import com.ghyinc.finance.domain.loan.factory.LoanLimitAdaptorFactory
+import com.ghyinc.finance.domain.loan.repository.LoanLimitInquiryRepository
+import com.ghyinc.finance.domain.loan.repository.ProductRepository
+import com.ghyinc.finance.global.common.LoReqtNoGenerator
+import com.ghyinc.finance.global.event.LoanLimitCompletedEvent
+import com.ghyinc.finance.global.event.LoanLimitInquiryCreatedEvent
+import com.ghyinc.finance.global.outbox.entity.OutboxEvent.Companion.create
+import com.ghyinc.finance.global.outbox.entity.OutboxStatus
+import com.ghyinc.finance.global.outbox.event.OutboxCreatedEvent
+import com.ghyinc.finance.global.outbox.repository.OutboxEventRepository
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException
+import org.apache.kafka.common.errors.InvalidRequestException
+import org.slf4j.LoggerFactory
+import org.slf4j.MDC
+import org.springframework.context.ApplicationEventPublisher
+import org.springframework.scheduling.annotation.Async
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.event.TransactionPhase
+import org.springframework.transaction.event.TransactionalEventListener
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executor
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.TimeUnit
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-@Slf4j
 @Service
-@RequiredArgsConstructor
-public class LoanLimitSenderService {
-    private final LoanLimitAdaptorFactory adaptorFactory;
-    private final LoanLimitInquiryRepository loanLimitInquiryRepository;
-    private final ProductRepository productRepository;
-    private final OutboxEventRepository outboxEventRepository;
+class LoanLimitSenderService(
+    private val adaptorFactory: LoanLimitAdaptorFactory,
+    private val loanLimitInquiryRepository: LoanLimitInquiryRepository,
+    private val productRepository: ProductRepository,
+    private val outboxEventRepository: OutboxEventRepository,
 
-    private final LoReqtNoGenerator generator;
-    private final Executor partnerApiExecutor;
-    private final ApplicationEventPublisher applicationEventPublisher;
-    private final SpringLoanLimitEventPublisher springLoanLimitEventPublisher;
-    private final KafkaLoanLimitEventPublisher kafkalLoanLimitEventPublisher;
-    private final ObjectMapper objectMapper;
+    private val generator: LoReqtNoGenerator,
+    private val partnerApiExecutor: Executor,
+    private val applicationEventPublisher: ApplicationEventPublisher,
+    private val objectMapper: ObjectMapper
+) {
+    private val log = LoggerFactory.getLogger(LoanLimitSenderService::class.java)
 
-    private static final String REQUEST_ID_KEY = "requestId";
+    companion object {
+        private const val REQUEST_ID_KEY = "requestId"
+    }
+
+    /**
+     * 트랜잭션 커밋 후 이벤트 수신 -> inquiry() 호출
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async("loanLimitExecutor")
+    fun handleInquiryCreated(
+        inquiryCreateEvent: LoanLimitInquiryCreatedEvent
+    ) {
+        this.inquiry(inquiryCreateEvent.id, inquiryCreateEvent.activePartnerCodes, inquiryCreateEvent.adaptorRequest)
+    }
 
     /**
      * 여러 금융사에 대한 한도조회
      *
-     * <p> 각 은행 API 호출은 독립적이므로 CompletableFuture로 병렬 처리
+     *
+     *  각 은행 API 호출은 독립적이므로 CompletableFuture로 병렬 처리
      * 한 금융사의 실패가 다른 금융사 조회에 영향을 주지 않음.
      * 전용 스레드 풀을 사용하여 외부 I/O가 공통 스레드 풀을 점유하지 않도록 격리
      */
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Async("loanLimitExecutor")
-    public void inquiry(
-            LoanLimitInquiryCreatedEvent inquiryCreateEvent
+    @Transactional
+    fun inquiry(
+        id: Long? = null,
+        partnerCodes: List<PartnerCode>,
+        adaptorRequest: LoanLimitAdaptorRequest
     ) {
-        long id = inquiryCreateEvent.getId();
-        List<PartnerCode> partnerCodes = inquiryCreateEvent.getActivePartnerCodes();
-        LoanLimitAdaptorRequest adaptorRequest = inquiryCreateEvent.getAdaptorRequest();
-        
         // 새 트랜잭션에서 inquiry 조회 (호출 측 트랜잭션과 완전 분리)
-        LoanLimitInquiry loanLimitInquiry = loanLimitInquiryRepository.findById(id)
-                .orElseThrow(() -> new InvalidRequestException("존재하지 않는 조회 이력: " + id));
+        val loanLimitInquiry = loanLimitInquiryRepository.findById(id)
+            .orElseThrow{ InvalidRequestException("존재하지 않는 조회 이력: $id") }
 
-        loanLimitInquiry.updateInquiryStatus(InquiryStatus.IN_PROGRESS);
+        loanLimitInquiry.updateInquiryStatus(InquiryStatus.IN_PROGRESS)
 
         try {
             // 각 금융사에 대한 Result 선저장
-            // partnerCode -> 해당 금융사 코드
-            Map<PartnerCode, LoanLimitResult> resultMap = partnerCodes.stream()
-                    .collect(Collectors.toMap(
-                            partnerCode -> partnerCode,
-                            partnerCode -> {
-                                LoanLimitResult result = LoanLimitResult.create(
-                                            loanLimitInquiry
-                                        ,   partnerCode
-                                        ,   InquiryStatus.PENDING
-                                        ,   null
-                                        ,   0L
-                                );
-                                loanLimitInquiry.addResult(result);
-                                return result;
-                            }
-                    ));
+            val resultMap = partnerCodes.associateWith { partnerCode ->
+                LoanLimitResult.create(
+                    loanLimitInquiry = loanLimitInquiry,
+                    partnerCode = partnerCode,
+                    status = InquiryStatus.PENDING
+                ).also { loanLimitInquiry.addResult(it) }
+            }
 
             // 금융사별 상품 조회 및 ProductResult 선저장
-            Map<PartnerCode, List<LoanLimitProductResult>> productResultMap = partnerCodes.stream()
-                    .collect(Collectors.toMap(
-                            partnerCode -> partnerCode,
-                            partnerCode -> productRepository.findActiveByPartnerCodeAndLoanType(partnerCode, adaptorRequest.getLoanType())
-                                    .stream()
-                                    .map(product -> {
-                                        LoanLimitProductResult productResult =
-                                                LoanLimitProductResult.create(
-                                                            loanLimitInquiry
-                                                        ,   generator.generate("LR") //신청번호 채번
-                                                        ,   partnerCode
-                                                        ,   product.getProductCode()
-                                                        ,   PartnerInquiryStatus.PENDING
-                                                        ,   null
-                                                        ,   0L
-                                                        ,   0.0
-                                                );
-                                        loanLimitInquiry.addProductResult(productResult);
-                                        return productResult;
-                                    }).toList()
-                    ));
+            val productResultMap = partnerCodes.associateWith { partnerCode ->
+                productRepository.findActiveByPartnerCodeAndLoanType(partnerCode, adaptorRequest.loanType)
+                    .map { product ->
+                        LoanLimitProductResult.create(
+                            loanLimitInquiry = loanLimitInquiry,
+                            loReqtNo = generator.generate("LR"),  //신청번호 채번
+                            partnerCode = partnerCode,
+                            productCode = product.productCode,
+                            status = PartnerInquiryStatus.PENDING
+                        ).also { loanLimitInquiry.addProductResult(it) }
+                    }
+            }
 
             // 상품 전체 수 초기화
-            int totalProductCount = productResultMap.values().stream()
-                    .mapToInt(List::size)
-                    .sum();
-            loanLimitInquiry.initProductCount(totalProductCount);
+            val totalProductCount = productResultMap.values.sumOf { it.size }
+            loanLimitInquiry.initProductCount(totalProductCount)
 
             // 금융사별 RequestProduct(공통 요청 DTO) 구성
-            Map<PartnerCode, List<RequestProduct>> requestProductMap = productResultMap.entrySet().stream()
-                    .collect(Collectors.toMap(
-                            Map.Entry::getKey,
-                            entry -> entry.getValue().stream()
-                                    .map(productResult ->
-                                            RequestProduct.create(
-                                                    productResult.getLoReqtNo(),
-                                                    productResult.getProductCode()
-                                            )
-                                    ).toList()
-                    ));
+            val requestProductMap = productResultMap.mapValues { (_, results) ->
+                results.map { productResult ->
+                    RequestProduct(
+                        loReqtNo = productResult.loReqtNo,
+                        productCode = productResult.productCode
+                    )
+                }
+            }
 
 
             // 금융사별 병렬 API 호출
             // partnerCode별 requestProducts 구성 후 병렬 호출
-            var futures = partnerCodes.stream()
-                    .map(partnerCode -> {
-                        //requestProducts를 포함한 요청 DTO 재구성
-                        LoanLimitAdaptorRequest adaptorRequests =
-                                adaptorRequest.withRequestProducts(requestProductMap.get(partnerCode));
+            val futures = partnerCodes.map { partnerCode ->
+                //requestProducts를 포함한 요청 DTO 재구성
+                val adaptorRequests = adaptorRequest.withRequestProducts(
+                    requestProductMap[partnerCode] ?: emptyList()
+                )
+                val adaptor: LoanLimitAdaptor = adaptorFactory.getAdaptor(partnerCode)
 
-                        LoanLimitAdaptor adaptor = adaptorFactory.getAdaptor(partnerCode);
-                        return CompletableFuture
-                                .supplyAsync(() -> adaptor.inquireLimit(partnerCode, adaptorRequests), partnerApiExecutor)
-                                .orTimeout(8, TimeUnit.SECONDS)
-                                .exceptionally(ex -> {
-                                    // Circuit Breaker OPEN 시
-                                    if(ex.getCause() instanceof CallNotPermittedException) {
-                                        log.warn("[{}] Circuit Breaker OPEN - 해당 금융사 격리", partnerCode, ex);
-                                        return LoanLimitAdaptorResponse.fail(partnerCode, ex.getMessage(), 0L);
-                                    }
+                CompletableFuture
+                    .supplyAsync({ adaptor.inquireLimit(partnerCode, adaptorRequests) }, partnerApiExecutor)
+                    .orTimeout(8, TimeUnit.SECONDS)
+                    .exceptionally { ex ->
+                        when (ex.cause) {
+                            // Circuit Breaker OPEN 시
+                            is CallNotPermittedException -> {
+                                log.warn("[{}] Circuit Breaker OPEN - 해당 금융사 격리", partnerCode, ex)
+                                LoanLimitAdaptorResponse.fail(partnerCode, ex.message, 0L)
+                            }
 
-                                    if (ex.getCause() instanceof RejectedExecutionException) {
-                                        log.error("[{}] partnerApiExecutor 큐 초과", partnerCode);
-                                        return LoanLimitAdaptorResponse.fail(
-                                                partnerCode, "THREAD_POOL_EXHAUSTED", 0L);
-                                    }
+                            is RejectedExecutionException -> {
+                                log.error("[{}] partnerApiExecutor 큐 초과", partnerCode)
+                                LoanLimitAdaptorResponse.fail(partnerCode, "THREAD_POOL_EXHAUSTED", 0L)
+                            }
 
-                                    log.error("[{}] 비동기 한도조회 중 에러 발생", partnerCode, ex);
-                                    return LoanLimitAdaptorResponse.fail(partnerCode, ex.getMessage(), 0L);
-                                });
-                    })
-                    .toList();
+                            else -> {
+                                log.error("[{}] 비동기 한도조회 중 에러 발생", partnerCode, ex)
+                                LoanLimitAdaptorResponse.fail(partnerCode, ex.message, 0L)
+                            }
+                        }
+                    }
+            }
 
-            List<LoanLimitAdaptorResponse> adaptorResponses = futures.stream()
-                    .map(CompletableFuture::join)
-                    .toList();
+            val adaptorResponses = futures.map { it.join() }
 
             // 어댑터 응답을 후처리하고 Entity로 변환하여 저장
-            adaptorResponses.forEach(adaptorResponse -> {
-                LoanLimitResult result = resultMap.get(adaptorResponse.getPartnerCode());
-
-                    if(adaptorResponse.getSuccess()) {
-                        result.success(adaptorResponse.getResTimeMs());
-                        productResultMap.get(adaptorResponse.getPartnerCode())
-                                .forEach(LoanLimitProductResult::sendSuccess);
-                    }
-                    else {
-                        result.fail(
-                                adaptorResponse.getFailReason(),
-                                adaptorResponse.getResTimeMs()
-                        );
-
-                        productResultMap.get(adaptorResponse.getPartnerCode())
-                                .forEach(LoanLimitProductResult::sendFail);
-                    }
-
-            });
+            adaptorResponses.forEach { adaptorResponse ->
+                val result = resultMap[adaptorResponse.partnerCode]
+                if (adaptorResponse.success) {
+                    result?.success(adaptorResponse.resTimeMs)
+                    productResultMap[adaptorResponse.partnerCode] ?.forEach { it.sendSuccess() }
+                } else {
+                    result?.fail(adaptorResponse.failReason, adaptorResponse.resTimeMs)
+                    productResultMap[adaptorResponse.partnerCode] ?.forEach { it.sendFail() }
+                }
+            }
 
             // 최종 상태 결정
-            long successCount = adaptorResponses.stream()
-                    .filter(LoanLimitAdaptorResponse::getSuccess).count();
-            InquiryStatus resultStatus = successCount == adaptorResponses.size()
-                    ? InquiryStatus.SUCCESS
-                    : (successCount == 0 ? InquiryStatus.FAILED : InquiryStatus.PARTIAL_SUCCESS);
+            val successCount = adaptorResponses.count { it.success }
+            val resultStatus = when(successCount) {
+                adaptorResponses.size -> InquiryStatus.SUCCESS
+                0 -> InquiryStatus.FAILED
+                else -> InquiryStatus.PARTIAL_SUCCESS
+            }
 
-            loanLimitInquiry.updateInquiryStatus(resultStatus);
+            loanLimitInquiry.updateInquiryStatus(resultStatus)
 
             // 알림 발송 - notification 도메인을 직접 알지 못함
-            if(!Objects.equals(InquiryStatus.FAILED, resultStatus)) {
+            if (InquiryStatus.FAILED != resultStatus) {
                 // Outbox INSERT (비즈니스 트랜잭션과 원자적)
-                OutboxEvent outboxEvent = OutboxEvent.create(
-                            "LoanLimitInquiry"
-                        ,   loanLimitInquiry.getInquiryNo()
-                        ,   "LOAN_LIMIT_COMPLETED"
-                        ,   objectMapper.writeValueAsString(
-                                LoanLimitCompletedEvent.builder()
-                                        .inquiryNo(loanLimitInquiry.getInquiryNo())
-                                        .userId(loanLimitInquiry.getUserId())
-                                        .name(loanLimitInquiry.getName())
-                                        .status(loanLimitInquiry.getStatus())
-                                        .requestId(MDC.get(REQUEST_ID_KEY))
-                                        .build()
-                                )
-                        ,   OutboxStatus.PENDING
-                        ,   null
-                        ,   0
-                );
+                val outboxEvent = create(
+                    aggregateType = "LoanLimitInquiry",
+                    aggregateId = loanLimitInquiry.inquiryNo,
+                    eventType = "LOAN_LIMIT_COMPLETED",
+                    payload = objectMapper.writeValueAsString(
+                        LoanLimitCompletedEvent.create(
+                            inquiryNo = loanLimitInquiry.inquiryNo,
+                            userId = loanLimitInquiry.userId,
+                            name = loanLimitInquiry.name,
+                            status = loanLimitInquiry.status,
+                            requestId = MDC.get(REQUEST_ID_KEY)
+                        )
+                    ),
+                    status = OutboxStatus.PENDING
+                )
 
-                outboxEventRepository.save(outboxEvent);
+                outboxEventRepository.save(outboxEvent)
 
                 //kafkalLoanLimitEventPublisher.publishCompletedEvent(event);
                 //springLoanLimitEventPublisher.publishCompletedEvent(event);
 
                 // Spring 이벤트 발행 (트랜잭션 커밋 후 Kafka 발행 트리거)
-                applicationEventPublisher.publishEvent(
-                        new OutboxCreatedEvent(outboxEvent.getId()));
+                applicationEventPublisher.publishEvent(OutboxCreatedEvent(outboxEvent.id))
             }
-
-        } catch(Exception e) {
-            log.error("한도조회 처리 중 오류. id={}", loanLimitInquiry.getId(), e);
-            loanLimitInquiry.updateInquiryStatus(InquiryStatus.FAILED);
+        } catch (e: Exception) {
+            log.error("한도조회 처리 중 오류. id={}", loanLimitInquiry.id, e)
+            loanLimitInquiry.updateInquiryStatus(InquiryStatus.FAILED)
         }
     }
 }

@@ -1,261 +1,230 @@
-package com.ghyinc.finance.domain.loan.service;
+package com.ghyinc.finance.domain.loan.service
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest;
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse;
-import com.ghyinc.finance.domain.loan.adaptor.impl.LoanLimitAdaptor;
-import com.ghyinc.finance.domain.loan.entity.LoanLimitInquiry;
-import com.ghyinc.finance.domain.loan.entity.Product;
-import com.ghyinc.finance.domain.loan.enums.InquiryStatus;
-import com.ghyinc.finance.domain.loan.enums.JobType;
-import com.ghyinc.finance.domain.loan.enums.LoanType;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import com.ghyinc.finance.domain.loan.factory.LoanLimitAdaptorFactory;
-import com.ghyinc.finance.domain.loan.repository.LoanLimitInquiryRepository;
-import com.ghyinc.finance.domain.loan.repository.ProductRepository;
-import com.ghyinc.finance.global.common.DateUtils;
-import com.ghyinc.finance.global.common.LoReqtNoGenerator;
-import com.ghyinc.finance.global.event.impl.KafkaLoanLimitEventPublisher;
-import com.ghyinc.finance.global.exception.ExternalApiFailException;
-import com.ghyinc.finance.global.outbox.entity.OutboxEvent;
-import com.ghyinc.finance.global.outbox.entity.OutboxStatus;
-import com.ghyinc.finance.global.outbox.event.OutboxCreatedEvent;
-import com.ghyinc.finance.global.outbox.repository.OutboxEventRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.test.util.ReflectionTestUtils;
+import com.fasterxml.jackson.core.JsonProcessingException
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorResponse.Companion.success
+import com.ghyinc.finance.domain.loan.adaptor.impl.LoanLimitAdaptor
+import com.ghyinc.finance.domain.loan.entity.LoanLimitInquiry
+import com.ghyinc.finance.domain.loan.entity.LoanLimitInquiry.Companion.create
+import com.ghyinc.finance.domain.loan.entity.Product
+import com.ghyinc.finance.domain.loan.enums.InquiryStatus
+import com.ghyinc.finance.domain.loan.enums.JobType
+import com.ghyinc.finance.domain.loan.enums.LoanType
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import com.ghyinc.finance.domain.loan.factory.LoanLimitAdaptorFactory
+import com.ghyinc.finance.domain.loan.repository.LoanLimitInquiryRepository
+import com.ghyinc.finance.domain.loan.repository.ProductRepository
+import com.ghyinc.finance.global.common.DateUtils
+import com.ghyinc.finance.global.common.LoReqtNoGenerator
+import com.ghyinc.finance.global.exception.ExternalApiFailException
+import com.ghyinc.finance.global.outbox.entity.OutboxEvent
+import com.ghyinc.finance.global.outbox.entity.OutboxEvent.Companion.create
+import com.ghyinc.finance.global.outbox.entity.OutboxStatus
+import com.ghyinc.finance.global.outbox.event.OutboxCreatedEvent
+import com.ghyinc.finance.global.outbox.repository.OutboxEventRepository
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.InjectMocks
+import org.mockito.Mock
+import org.mockito.Mockito.mock
+import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.*
+import org.slf4j.MDC
+import org.springframework.context.ApplicationEventPublisher
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
+import org.springframework.test.util.ReflectionTestUtils
+import java.time.LocalDateTime
+import java.util.*
+import java.util.concurrent.Executor
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.mock;
-
-@ExtendWith(MockitoExtension.class)
-class LoanLimitSenderServiceTest {
+@ExtendWith(MockitoExtension::class)
+internal class LoanLimitSenderServiceTest {
     @InjectMocks
-    private LoanLimitSenderService loanLimitSenderService;
+    private lateinit var loanLimitSenderService: LoanLimitSenderService
 
     @Mock
-    private LoanLimitInquiryRepository loanLimitInquiryRepository;
+    private lateinit var loanLimitInquiryRepository: LoanLimitInquiryRepository
 
     @Mock
-    private ProductRepository productRepository;
+    private lateinit var productRepository: ProductRepository
 
     @Mock
-    private LoReqtNoGenerator generator;
+    private lateinit var generator: LoReqtNoGenerator
 
     @Mock
-    private LoanLimitAdaptorFactory adaptorFactory;
+    private lateinit var adaptorFactory: LoanLimitAdaptorFactory
 
     @Mock
-    private OutboxEventRepository outboxEventRepository;
+    private lateinit var outboxEventRepository: OutboxEventRepository
 
     @Mock
-    private ApplicationEventPublisher applicationEventPublisher;
+    private lateinit var applicationEventPublisher: ApplicationEventPublisher
 
     @Mock
-    private ObjectMapper objectMapper;
+    private lateinit var objectMapper: ObjectMapper
+
+    @Mock
+    private lateinit var partnerApiExecutor: Executor
 
     @BeforeEach
-    void setUp() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(4);
-        executor.setMaxPoolSize(4);
-        executor.initialize();
-        ReflectionTestUtils.setField(loanLimitSenderService, "partnerApiExecutor", executor);
+    fun setUp() {
+        val executor = ThreadPoolTaskExecutor().apply {
+            corePoolSize = 4
+            maxPoolSize = 4
+            initialize()
+        }
+        ReflectionTestUtils.setField(
+            loanLimitSenderService,
+            "partnerApiExecutor",
+            executor)
+        MDC.put("requestId", "test-request-id")
     }
 
-    private LoanLimitInquiry buildInquiry() {
-        return LoanLimitInquiry.create(
-                    ""
-                ,   1L
-                ,   "윤교희"
-                ,   ""
-                ,   LoanType.PERSONAL_CREDIT
-                ,   JobType.EMPLOYEE
-                ,   "오케이"
-                ,   null
-                ,   null
-                ,   true
-                ,   null
-        );
+    @AfterEach
+    fun tearDown() {
+        MDC.clear()
     }
 
-    private Product buildProduct(String productCode) {
-        Product product = mock(Product.class);
-        given(product.getProductCode()).willReturn(productCode);
-        return product;
-    }
+    private fun buildInquiry(): LoanLimitInquiry =
+        create(
+            inquiryNo = "",
+            userId = 1L,
+            name = "윤교희",
+            ci = "",
+            loanType = LoanType.PERSONAL_CREDIT,
+            jobType = JobType.EMPLOYEE,
+            jobName = "오케이",
+            joinDate = null,
+            carNo = null,
+            agreePersonalCreditInfo = true,
+            agreePersonalCreditTime = null
+        )
+
+    private fun buildProduct(productCode: String): Product =
+        mock(Product::class.java).also {
+                given(it.productCode).willReturn(productCode)
+            }
+
+    private fun buildAdaptorRequest(): LoanLimitAdaptorRequest =
+        LoanLimitAdaptorRequest(
+            name = "윤교희",
+            rrno = "9102131234567",
+            jobType = JobType.EMPLOYEE,
+            jobName = "오케이",
+            loanType = LoanType.PERSONAL_CREDIT,
+            agreePersonalCreditInfo = true,
+            agreePersonalCreditTime = DateUtils.toDateTimeString(LocalDateTime.now())
+        )
 
     @Test
     @DisplayName("전송 성공 - LoanLimitResult SUCCESS, Inquiry SUCCESS")
-    void inquiry_sendSuccess() throws JsonProcessingException {
+    @Throws(JsonProcessingException::class)
+    fun inquiry_sendSuccess() {
         // given
-        LoanLimitInquiry inquiry = this.buildInquiry();
-        given(loanLimitInquiryRepository.findById(1L)).willReturn(Optional.of(inquiry));
+        val inquiry = this.buildInquiry()
+        given(loanLimitInquiryRepository.findById(1L))
+            .willReturn(Optional.of(inquiry))
 
-        Product product = this.buildProduct("P060100206");
+        val product = this.buildProduct("P060100206")
         given(productRepository.findActiveByPartnerCodeAndLoanType(PartnerCode.LINE_BANK, LoanType.PERSONAL_CREDIT))
-                .willReturn(List.of(product));
-        given(generator.generate("LR")).willReturn("LR20260410AAA");
+            .willReturn(listOf(product))
+        given(generator.generate("LR")).willReturn("LR20260410AAA")
 
-        LoanLimitAdaptor adaptor = mock(LoanLimitAdaptor.class);
-        given(adaptorFactory.getAdaptor(PartnerCode.LINE_BANK)).willReturn(adaptor);
+        val adaptor = mock(LoanLimitAdaptor::class.java)
+        given(adaptorFactory.getAdaptor(PartnerCode.LINE_BANK)).willReturn(adaptor)
         given(adaptor.inquireLimit(eq(PartnerCode.LINE_BANK), any()))
-                .willReturn(LoanLimitAdaptorResponse.success(PartnerCode.LINE_BANK, 100L));
-
-        LoanLimitAdaptorRequest adaptorRequest = LoanLimitAdaptorRequest.create(
-                "윤교희",
-                "9102131234467",
-                JobType.EMPLOYEE,
-                "오케이",
-                null,
-                LoanType.PERSONAL_CREDIT,
-                null,
-                null,
-                true,
-                DateUtils.toDateTimeString(LocalDateTime.now()),
-                null,
-                null,
-                null
-        );
+            .willReturn(success(PartnerCode.LINE_BANK, 100L))
 
         given(objectMapper.writeValueAsString(any()))
-                .willReturn("{\"inquiryNo\":\"LL20260410A3F2C891\"}");
+            .willReturn("{\"inquiryNo\":\"LL20260410A3F2C891\"}")
 
-        OutboxEvent savedOutboxEvent = OutboxEvent.create(
-                    "LoanLimitInquiry"
-                ,   "LL20260410A3F2C891"
-                ,   "LOAN_LIMIT_COMPLETED"
-                ,   ""
-                ,   OutboxStatus.PENDING
-                ,   null
-                ,   0
-        );
-        ReflectionTestUtils.setField(savedOutboxEvent, "id", 1L);
+        val savedOutboxEvent = create(
+            "LoanLimitInquiry",
+            "LL20260410A3F2C891",
+            "LOAN_LIMIT_COMPLETED",
+            "",
+            OutboxStatus.PENDING,
+            null,
+            0
+        ).also { ReflectionTestUtils.setField(it, "id", 1L) }
 
-        given(outboxEventRepository.save(any(OutboxEvent.class)))
-                .willReturn(savedOutboxEvent);
+        given(outboxEventRepository.save(any<OutboxEvent>()))
+            .willReturn(savedOutboxEvent)
 
-        // when
-        loanLimitSenderService.inquiry(1L, List.of(PartnerCode.LINE_BANK), adaptorRequest);
+        // when - 이벤트 객체로 직접 호출
+        loanLimitSenderService.inquiry(1L, listOf(PartnerCode.LINE_BANK), this.buildAdaptorRequest())
+
 
         // then
-        //then(loanLimitEventPublisher).should().publishCompletedEvent(any());
-
         // Outbox INSERT 검증
-        ArgumentCaptor<OutboxEvent> outboxCaptor =
-                ArgumentCaptor.forClass(OutboxEvent.class);
-        then(outboxEventRepository).should().save(outboxCaptor.capture());
+        val outboxCaptor = argumentCaptor<OutboxEvent>()
+        then(outboxEventRepository).should().save(outboxCaptor.capture())
 
-        OutboxEvent capturedOutbox = outboxCaptor.getValue();
-        assertThat(capturedOutbox.getAggregateType()).isEqualTo("LoanLimitInquiry");
-        assertThat(capturedOutbox.getEventType()).isEqualTo("LOAN_LIMIT_COMPLETED");
-        assertThat(capturedOutbox.getStatus()).isEqualTo(OutboxStatus.PENDING);
+        val capturedOutbox = outboxCaptor.firstValue
+        assertThat(capturedOutbox.aggregateType).isEqualTo("LoanLimitInquiry")
+        assertThat(capturedOutbox.eventType).isEqualTo("LOAN_LIMIT_COMPLETED")
+        assertThat(capturedOutbox.status).isEqualTo(OutboxStatus.PENDING)
 
         // Spring 이벤트 발행 검증
-        then(applicationEventPublisher).should().publishEvent(any(OutboxCreatedEvent.class));
+        then(applicationEventPublisher).should().publishEvent(any<OutboxCreatedEvent>())
 
-        assertThat(inquiry.getStatus()).isEqualTo(InquiryStatus.SUCCESS);
-        assertThat(inquiry.getResults()).hasSize(1);
-        assertThat(inquiry.getResults().get(0).getStatus())
-                .isEqualTo(InquiryStatus.SUCCESS);
-
+        assertThat(inquiry.status).isEqualTo(InquiryStatus.SUCCESS)
+        assertThat(inquiry.results).hasSize(1)
+        assertThat(inquiry.results[0].status).isEqualTo(InquiryStatus.SUCCESS)
     }
 
     @Test
     @DisplayName("전송 실패 - LoanLimitResult FAILED, Inquiry FAILED")
-    void inquiry_sendFailed_inquiryFailed() {
-        LoanLimitInquiry inquiry = this.buildInquiry();
-        given(loanLimitInquiryRepository.findById(1L)).willReturn(Optional.of(inquiry));
-        Product product = this.buildProduct("P060100206");
+    fun inquiry_sendFailed_inquiryFailed() {
+        val inquiry = this.buildInquiry()
+        given(loanLimitInquiryRepository.findById(1L)).willReturn(Optional.of(inquiry))
+        val product = this.buildProduct("P060100206")
         given(productRepository.findActiveByPartnerCodeAndLoanType(any(), any()))
-                .willReturn(List.of(product));
+            .willReturn(listOf(product))
 
-        LoanLimitAdaptor adaptor = mock(LoanLimitAdaptor.class);
-        given(adaptorFactory.getAdaptor(any())).willReturn(adaptor);
+        val adaptor = mock(LoanLimitAdaptor::class.java)
+        given(adaptorFactory.getAdaptor(any())).willReturn(adaptor)
         given(adaptor.inquireLimit(any(), any()))
-                .willThrow(new ExternalApiFailException("한도조회_ERROR", PartnerCode.LINE_BANK + " 4xx 오류"));
-        LoanLimitAdaptorRequest adaptorRequest = LoanLimitAdaptorRequest.create(
-                "윤교희",
-                "9102131234467",
-                JobType.EMPLOYEE,
-                "오케이",
-                null,
-                LoanType.PERSONAL_CREDIT,
-                null,
-                null,
-                true,
-                DateUtils.toDateTimeString(LocalDateTime.now()),
-                null,
-                null,
-                null
-        );
+            .willThrow(ExternalApiFailException("한도조회_ERROR",  "${PartnerCode.LINE_BANK} 4xx 오류"))
 
         // when
-        loanLimitSenderService.inquiry(1L, List.of(PartnerCode.LINE_BANK), adaptorRequest);
+        loanLimitSenderService.inquiry(1L, listOf(PartnerCode.LINE_BANK), this.buildAdaptorRequest())
 
         // then
-        assertThat(inquiry.getStatus()).isEqualTo(InquiryStatus.FAILED);
-        assertThat(inquiry.getResults().get(0).getStatus())
-                .isEqualTo(InquiryStatus.FAILED);
+        assertThat(inquiry.status).isEqualTo(InquiryStatus.FAILED)
+        assertThat(inquiry.results[0].status).isEqualTo(InquiryStatus.FAILED)
     }
 
     @Test
     @DisplayName("상품별 신청번호 채번 후 ProductResult에 선저장 - 총 상품 수만큼 INSERT")
-    void inquiry_productResultPreSaved_withLoReqtNo() {
+    fun inquiry_productResultPreSaved_withLoReqtNo() {
         // given
-        LoanLimitInquiry inquiry = this.buildInquiry();
-        given(loanLimitInquiryRepository.findById(1L)).willReturn(Optional.of(inquiry));
-        Product product1 = this.buildProduct("P060100206");
-        Product product2 = this.buildProduct("P060100205");
+        val inquiry = this.buildInquiry()
+        given(loanLimitInquiryRepository.findById(1L))
+            .willReturn(Optional.of(inquiry))
+        val product1 = this.buildProduct("P060100206")
+        val product2 = this.buildProduct("P060100205")
         given(productRepository.findActiveByPartnerCodeAndLoanType(eq(PartnerCode.LINE_BANK), any()))
-                .willReturn(List.of(product1, product2));
-        given(generator.generate("LR")).willReturn("LR_AAA", "LR_BBB");
+            .willReturn(listOf(product1, product2))
+        given(generator.generate("LR")).willReturn("LR_AAA", "LR_BBB")
 
-        LoanLimitAdaptor adaptor = mock(LoanLimitAdaptor.class);
-        given(adaptorFactory.getAdaptor(any())).willReturn(adaptor);
-        given(adaptor.inquireLimit(any(), any()))
-                .willReturn(LoanLimitAdaptorResponse.success(PartnerCode.LINE_BANK, 100L));
-
-        LoanLimitAdaptorRequest adaptorRequest = LoanLimitAdaptorRequest.create(
-                "윤교희",
-                "9102131234467",
-                JobType.EMPLOYEE,
-                "오케이",
-                null,
-                LoanType.PERSONAL_CREDIT,
-                null,
-                null,
-                true,
-                DateUtils.toDateTimeString(LocalDateTime.now()),
-                null,
-                null,
-                null
-        );
+        val adaptor = mock(LoanLimitAdaptor::class.java)
+        given(adaptorFactory.getAdaptor(any())).willReturn(adaptor)
+        given(adaptor.inquireLimit(any(),any()))
+            .willReturn(success(PartnerCode.LINE_BANK, 100L))
 
         // when
-        loanLimitSenderService.inquiry(1L, List.of(PartnerCode.LINE_BANK), adaptorRequest);
+        loanLimitSenderService.inquiry(1L, listOf(PartnerCode.LINE_BANK), this.buildAdaptorRequest())
 
         // then
-        assertThat(inquiry.getProductResults()).hasSize(2);
-        assertThat(inquiry.getProductResults().get(0).getLoReqtNo()).isEqualTo("LR_AAA");
-        assertThat(inquiry.getProductResults().get(1).getLoReqtNo()).isEqualTo("LR_BBB");
-        assertThat(inquiry.getTotalProductCount()).isEqualTo(2);
+        assertThat(inquiry.productResults).hasSize(2)
+        assertThat(inquiry.productResults[0].loReqtNo).isEqualTo("LR_AAA")
+        assertThat(inquiry.productResults[1].loReqtNo).isEqualTo("LR_BBB")
+        assertThat(inquiry.totalProductCount).isEqualTo(2)
     }
 }

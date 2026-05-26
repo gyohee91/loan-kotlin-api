@@ -1,20 +1,32 @@
-package com.ghyinc.finance.global.event;
+package com.ghyinc.finance.global.event
 
-import com.ghyinc.finance.domain.loan.enums.InquiryStatus;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import com.ghyinc.finance.domain.loan.enums.InquiryStatus
+import lombok.Getter
 
 @Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class LoanLimitCompletedEvent {
-    private String inquiryNo;
-    private Long userId;
-    private String name;
-    private InquiryStatus status;
+class LoanLimitCompletedEvent(
+    val inquiryNo: String,
+    val userId: Long,
+    val name: String? = null,
+    val status: InquiryStatus? = null,
 
-    private String requestId;
+    val requestId: String
+) {
+    companion object {
+        @JvmStatic
+        fun create(
+            inquiryNo: String,
+            userId: Long,
+            name: String? = null,
+            status: InquiryStatus? = null,
+            requestId: String
+        ): LoanLimitCompletedEvent =
+            LoanLimitCompletedEvent(
+                inquiryNo = inquiryNo,
+                userId = userId,
+                name = name,
+                status = status,
+                requestId = requestId
+            )
+    }
 }

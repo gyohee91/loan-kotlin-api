@@ -52,8 +52,8 @@ class LoanLimitResult : BaseTimeEntity() {
             loanLimitInquiry: LoanLimitInquiry? = null,
             partnerCode: PartnerCode,
             status: InquiryStatus,
-            failReason: String?,
-            resTimeMs: Long
+            failReason: String? = null,
+            resTimeMs: Long? = null
         ): LoanLimitResult {
             val entity = LoanLimitResult()
             entity.loanLimitInquiry = loanLimitInquiry

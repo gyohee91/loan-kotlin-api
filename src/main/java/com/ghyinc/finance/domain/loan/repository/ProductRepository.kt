@@ -21,5 +21,5 @@ interface ProductRepository : JpaRepository<Product, Long> {
     fun findActiveByPartnerCodeAndLoanType(
         @Param("partnerCode") partnerCode: PartnerCode,
         @Param("loanType") loanType: LoanType
-    ): MutableList<Product>
+    ): List<Product>
 }

@@ -14,7 +14,7 @@ class LoanLimitInquiryCreatedEvent(
     companion object {
         @JvmStatic
         fun create(
-            id: Long ? = null,
+            id: Long? = null,
             activePartnerCodes: List<PartnerCode>,
             adaptorRequest: LoanLimitAdaptorRequest
         ): LoanLimitInquiryCreatedEvent =
