@@ -56,7 +56,7 @@ class TossbankLoanLimitAdaptor(
     )
 
     private data class RequestProduct(
-        val loanReqNo: String? = null,
+        val loanReqNo: String,
         val loanProductId: String
     )
 

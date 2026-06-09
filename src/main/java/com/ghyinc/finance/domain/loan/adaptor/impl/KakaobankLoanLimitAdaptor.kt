@@ -32,7 +32,7 @@ class KakaobankLoanLimitAdaptor(
     )
 
     private data class AlncGdsInfo(
-        @field:JsonProperty("iqry_dman_no") val iqryDmanNo: String? = null,
+        @field:JsonProperty("iqry_dman_no") val iqryDmanNo: String,
         @field:JsonProperty("alnc_gds_unq_cd") val alncGdsUnqCd: String
     )
 

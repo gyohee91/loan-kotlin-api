@@ -20,7 +20,7 @@ class LoanLimitProductResult : BaseTimeEntity() {
 
     @Column(nullable = false, unique = true)
     @Comment("신청번호")
-    var loReqtNo: String? = ""
+    var loReqtNo: String = ""
 
     @Enumerated(EnumType.STRING)
     @Comment("금융사 코드")
@@ -66,7 +66,7 @@ class LoanLimitProductResult : BaseTimeEntity() {
         @JvmStatic
         fun create(
             loanLimitInquiry: LoanLimitInquiry,
-            loReqtNo: String? = null,
+            loReqtNo: String,
             partnerCode: PartnerCode,
             productCode: String,
             status: PartnerInquiryStatus,

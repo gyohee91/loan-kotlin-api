@@ -1,7 +1,7 @@
 package com.ghyinc.finance.domain.loan.dto
 
 data class RequestProduct(
-    val loReqtNo: String? = null,
+    val loReqtNo: String,
     val productCode: String
 ) {
     companion object {

@@ -42,7 +42,7 @@ class LinebankLoanLimitAdaptor(
     )
 
     private data class RequestProduct(
-        val ticketId: String? = null,
+        val ticketId: String,
         val loanProductId: String
     )
 
