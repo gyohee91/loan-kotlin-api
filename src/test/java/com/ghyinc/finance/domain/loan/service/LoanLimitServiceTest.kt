@@ -1,231 +1,230 @@
-package com.ghyinc.finance.domain.loan.service;
+package com.ghyinc.finance.domain.loan.service
 
-import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest;
-import com.ghyinc.finance.domain.loan.dto.*;
-import com.ghyinc.finance.domain.loan.entity.LoanLimitInquiry;
-import com.ghyinc.finance.domain.loan.enums.InquiryStatus;
-import com.ghyinc.finance.domain.loan.enums.JobType;
-import com.ghyinc.finance.domain.loan.enums.LoanType;
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import com.ghyinc.finance.domain.loan.factory.LoanLimitStrategyFactory;
-import com.ghyinc.finance.domain.loan.repository.LoanLimitInquiryRepository;
-import com.ghyinc.finance.domain.loan.repository.PartnerRepository;
-import com.ghyinc.finance.domain.loan.strategy.LoanLimitStrategy;
-import com.ghyinc.finance.global.common.LoReqtNoGenerator;
-import org.apache.kafka.common.errors.InvalidRequestException;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
+import com.ghyinc.finance.domain.loan.adaptor.dto.LoanLimitAdaptorRequest
+import com.ghyinc.finance.domain.loan.dto.ExternalDataContext.Companion.empty
+import com.ghyinc.finance.domain.loan.dto.ExternalDataContext.Companion.ofError
+import com.ghyinc.finance.domain.loan.dto.ExternalDataError.Companion.create
+import com.ghyinc.finance.domain.loan.dto.LoanLimitRequest.Companion.create
+import com.ghyinc.finance.domain.loan.entity.LoanLimitInquiry
+import com.ghyinc.finance.domain.loan.enums.InquiryStatus
+import com.ghyinc.finance.domain.loan.enums.JobType
+import com.ghyinc.finance.domain.loan.enums.LoanType
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import com.ghyinc.finance.domain.loan.factory.LoanLimitStrategyFactory
+import com.ghyinc.finance.domain.loan.repository.LoanLimitInquiryRepository
+import com.ghyinc.finance.domain.loan.strategy.LoanLimitStrategy
+import com.ghyinc.finance.global.common.LoReqtNoGenerator
+import com.ghyinc.finance.global.event.LoanLimitInquiryCreatedEvent
+import org.apache.kafka.common.errors.InvalidRequestException
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.InjectMocks
+import org.mockito.Mock
+import org.mockito.Mockito.mock
+import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.*
+import org.springframework.context.ApplicationEventPublisher
+import org.springframework.test.util.ReflectionTestUtils
+import java.time.LocalDateTime
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-
-@ExtendWith(MockitoExtension.class)
-class LoanLimitServiceTest {
-
+@ExtendWith(MockitoExtension::class)
+internal class LoanLimitServiceTest {
     @InjectMocks
-    private LoanLimitService loanLimitService;
+    private lateinit var loanLimitService: LoanLimitService
 
     @Mock
-    private LoanLimitStrategyFactory strategyFactory;
+    private lateinit var strategyFactory: LoanLimitStrategyFactory
 
     @Mock
-    private LoReqtNoGenerator generator;
+    private lateinit var generator: LoReqtNoGenerator
 
     @Mock
-    private PartnerRepository partnerRepository;
+    private lateinit var loanLimitInquiryRepository: LoanLimitInquiryRepository
 
     @Mock
-    private LoanLimitInquiryRepository loanLimitInquiryRepository;
-
-    @Mock
-    private LoanLimitSenderService loanLimitSenderService;
+    private lateinit var applicationEventPublisher: ApplicationEventPublisher
 
     @Test
     @DisplayName("한도조회 요청 정상처리 - 202 Accepted 즉시 응답")
-    void requestCompareLoan_success() {
+    fun requestCompareLoan_success() {
         // given
-        LoanLimitRequest request = LoanLimitRequest.create(
-                1L,
-                "윤교희",
-                "9102131234556",
-                "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
-                JobType.EMPLOYEE,
-                "오케이",
-                LoanType.PERSONAL_CREDIT,
-                true,
-                LocalDateTime.now()
-        );
+        val request = create(
+            1L,
+            "윤교희",
+            "9102131234556",
+            "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
+            JobType.EMPLOYEE,
+            "오케이",
+            LoanType.PERSONAL_CREDIT,
+            true,
+            LocalDateTime.now()
+        )
 
-        LoanLimitStrategy strategy = mock(LoanLimitStrategy.class);
-        given(strategyFactory.getStrategy(LoanType.PERSONAL_CREDIT)).willReturn(strategy);
-        given(strategy.requiresExternalData()).willReturn(false);
-        given(strategy.getSupportedBanks()).willReturn(List.of(PartnerCode.KAKAO_BANK, PartnerCode.TOSS_BANK));
-        given(strategy.filterAvailablePartners(any(), any())).willReturn(List.of(PartnerCode.KAKAO_BANK, PartnerCode.TOSS_BANK));
-        given(generator.generate("LL")).willReturn("LL20260416ANWOW");
-        given(strategy.toAdaptorRequest(any(), any())).willReturn(mock(LoanLimitAdaptorRequest.class));
+        val strategy = mock(LoanLimitStrategy::class.java)
+        given(strategyFactory.getStrategy(LoanType.PERSONAL_CREDIT))
+            .willReturn(strategy)
+        given(strategy.requiresExternalData()).willReturn(false)
+        given(strategy.supportedBanks)
+            .willReturn(listOf(PartnerCode.KAKAO_BANK, PartnerCode.TOSS_BANK))
+        given(strategy.filterAvailablePartners(any(), any()))
+            .willReturn(listOf(PartnerCode.KAKAO_BANK, PartnerCode.TOSS_BANK))
+        given(generator.generate("LL")).willReturn("LL20260416ANWOW")
+        given(strategy.toAdaptorRequest(any(), any()))
+            .willReturn(mock(LoanLimitAdaptorRequest::class.java))
 
-        given(loanLimitInquiryRepository.save(any(LoanLimitInquiry.class)))
-                .willAnswer(invocation -> {
-                    LoanLimitInquiry inquiry = invocation.getArgument(0);
-                    ReflectionTestUtils.setField(inquiry, "id", 1L);
-                    return inquiry;
-                });
+        given(loanLimitInquiryRepository.save(any<LoanLimitInquiry>()))
+            .willAnswer { invocation ->
+                val inquiry = invocation.getArgument<LoanLimitInquiry>(0)
+                ReflectionTestUtils.setField(inquiry, "id", 1L)
+                inquiry
+            }
 
         // when
-        LoanLimitInquiryResponse response = loanLimitService.requestCompareLoan(request);
+        val response = loanLimitService.requestCompareLoan(request)
 
         // then
-        assertThat(response.getSuccess()).isEqualTo(true);
+        assertThat(response.success).isEqualTo(true)
+        then(loanLimitInquiryRepository).should().save(any<LoanLimitInquiry>())
 
-        then(loanLimitInquiryRepository).should().save(any(LoanLimitInquiry.class));
-        then(loanLimitSenderService).should().inquiry(anyLong(), anyList(), any());
+        // 이벤트 발행 검증
+        val eventCaptor = argumentCaptor<LoanLimitInquiryCreatedEvent>()
+        then(applicationEventPublisher).should().publishEvent(eventCaptor.capture())
+        assertThat(eventCaptor.firstValue.id).isEqualTo(1L)
+        assertThat(eventCaptor.firstValue.activePartnerCodes)
+            .containsExactly(PartnerCode.KAKAO_BANK, PartnerCode.TOSS_BANK)
     }
 
     @Test
     @DisplayName("활성화된 금융사가 없으면 InvalidRequestException 발생")
-    void requestCompareLoan_noActivePartner_throwException() {
+    fun requestCompareLoan_noActivePartner_throwException() {
         // given
-        LoanLimitRequest request = LoanLimitRequest.create(
-                1L,
-                "윤교희",
-                "9102131234556",
-                "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
-                JobType.EMPLOYEE,
-                "오케이",
-                LoanType.PERSONAL_CREDIT,
-                true,
-                LocalDateTime.now()
-        );
-        LoanLimitStrategy strategy = mock(LoanLimitStrategy.class);
-        given(strategyFactory.getStrategy(LoanType.PERSONAL_CREDIT)).willReturn(strategy);
-        given(strategy.requiresExternalData()).willReturn(false);
-        given(strategy.getSupportedBanks()).willReturn(List.of());
+        val request = create(
+            1L,
+            "윤교희",
+            "9102131234556",
+            "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
+            JobType.EMPLOYEE,
+            "오케이",
+            LoanType.PERSONAL_CREDIT,
+            true,
+            LocalDateTime.now()
+        )
+        val strategy = mock(LoanLimitStrategy::class.java)
+        given(strategyFactory.getStrategy(LoanType.PERSONAL_CREDIT))
+            .willReturn(strategy)
+        given(strategy.requiresExternalData()).willReturn(false)
+        given(strategy.supportedBanks).willReturn(emptyList())
 
         // when & then
-        assertThatThrownBy(() -> loanLimitService.requestCompareLoan(request))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("현재 조회 가능한 금융사가 없습니다");
-        then(loanLimitSenderService).should(never()).inquiry(anyLong(), anyList(), any());
+        assertThatThrownBy { loanLimitService.requestCompareLoan(request) }
+            .isInstanceOf(InvalidRequestException::class.java)
+            .hasMessage("현재 조회 가능한 금융사가 없습니다")
+
+        // 이벤트 미발행 검증
+        then(applicationEventPublisher).should(never()).publishEvent(any<LoanLimitInquiryCreatedEvent>())
     }
 
     @Test
     @DisplayName("진행 중인 한도조회 요청이 있으면 중복 요청 방지")
-    void requestCompareLoan_inProgressExists_throwsException() {
+    fun requestCompareLoan_inProgressExists_throwsException() {
         // given
-        LoanLimitRequest request = LoanLimitRequest.create(
-                1L,
-                "윤교희",
-                "9102131234556",
-                "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
-                JobType.EMPLOYEE,
-                "오케이",
-                LoanType.PERSONAL_CREDIT,
-                true,
-                LocalDateTime.now()
-        );
-        
-        LoanLimitStrategy strategy = mock(LoanLimitStrategy.class);
-        //given(strategyFactory.getStrategy(any())).willReturn(strategy);
-        given(loanLimitInquiryRepository.existsByUserIdAndLoanTypeAndStatus(1L, LoanType.PERSONAL_CREDIT, InquiryStatus.IN_PROGRESS))
-                .willReturn(true);
+        val request = create(
+            1L,
+            "윤교희",
+            "9102131234556",
+            "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
+            JobType.EMPLOYEE,
+            "오케이",
+            LoanType.PERSONAL_CREDIT,
+            true,
+            LocalDateTime.now()
+        )
+
+        given(loanLimitInquiryRepository.existsByUserIdAndLoanTypeAndStatus(
+                1L, LoanType.PERSONAL_CREDIT, InquiryStatus.IN_PROGRESS
+            )).willReturn(true)
 
         // when & then
-        assertThatThrownBy(() -> loanLimitService.requestCompareLoan(request))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("진행 중인 한도조회가 있습니다.");
-        then(loanLimitInquiryRepository).should(never()).save(any());
+        assertThatThrownBy { loanLimitService.requestCompareLoan(request) }
+            .isInstanceOf(InvalidRequestException::class.java)
+            .hasMessage("진행 중인 한도조회가 있습니다.")
+
+        then(loanLimitInquiryRepository).should(never()).save(any())
+        then(applicationEventPublisher).should(never()).publishEvent(any<LoanLimitInquiryCreatedEvent>())
     }
 
     @Test
     @DisplayName("오토담보 - Nice DNR 조회 성공 시 정상 처리")
-    void requestCompareLoan_auto_niceDnrSuccess() {
+    fun requestCompareLoan_auto_niceDnrSuccess() {
         // given
-        LoanLimitRequest request = LoanLimitRequest.create(
-                1L,
-                "윤교희",
-                "9102131234556",
-                "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
-                JobType.EMPLOYEE,
-                "오케이",
-                LoanType.AUTO,
-                true,
-                LocalDateTime.now()
-        );
-        LoanLimitStrategy strategy = mock(LoanLimitStrategy.class);
-        given(strategyFactory.getStrategy(any())).willReturn(strategy);
-        given(strategy.requiresExternalData()).willReturn(true);
-        given(strategy.fetchExternalData(any())).willReturn(ExternalDataContext.empty());
-        given(strategy.getSupportedBanks()).willReturn(List.of(PartnerCode.LINE_BANK));
-        given(strategy.filterAvailablePartners(any(), any())).willReturn(List.of(PartnerCode.LINE_BANK));
-        given(generator.generate("LL")).willReturn("LL20260416ANWOW");
-        given(strategy.toAdaptorRequest(any(), any())).willReturn(mock(LoanLimitAdaptorRequest.class));
-
-        given(loanLimitInquiryRepository.save(any(LoanLimitInquiry.class)))
-                .willAnswer(invocation -> {
-                    LoanLimitInquiry inquiry = invocation.getArgument(0);
-                    ReflectionTestUtils.setField(inquiry, "id", 1L);
-                    return inquiry;
-                });
+        val request = create(
+            1L,
+            "윤교희",
+            "9102131234556",
+            "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
+            JobType.EMPLOYEE,
+            "오케이",
+            LoanType.AUTO,
+            true,
+            LocalDateTime.now()
+        )
+        val strategy = mock(LoanLimitStrategy::class.java)
+        given(strategyFactory.getStrategy(any())).willReturn(strategy)
+        given(strategy.requiresExternalData()).willReturn(true)
+        given(strategy.fetchExternalData(any())).willReturn(empty())
+        given(strategy.supportedBanks).willReturn(listOf(PartnerCode.LINE_BANK))
+        given(strategy.filterAvailablePartners(any(), any())).willReturn(listOf(PartnerCode.LINE_BANK))
+        given(generator.generate("LL")).willReturn("LL20260416ANWOW")
+        given(strategy.toAdaptorRequest(any(), any())).willReturn(mock(LoanLimitAdaptorRequest::class.java))
 
         // when
-        LoanLimitInquiryResponse response = loanLimitService.requestCompareLoan(request);
+        val response = loanLimitService.requestCompareLoan(request)
 
         // then
-        assertThat(response.getSuccess()).isEqualTo(true);
+        assertThat(response.success).isEqualTo(true)
+        then(loanLimitInquiryRepository).should().save(any<LoanLimitInquiry>())
 
-        then(loanLimitInquiryRepository).should().save(any(LoanLimitInquiry.class));
-        then(loanLimitSenderService).should().inquiry(anyLong(), anyList(), any());
+        val eventCaptor = argumentCaptor<LoanLimitInquiryCreatedEvent>()
+        then(applicationEventPublisher).should().publishEvent(eventCaptor.capture())
+        assertThat(eventCaptor.firstValue.activePartnerCodes)
+            .containsExactly(PartnerCode.LINE_BANK)
     }
 
     @Test
     @DisplayName("오토담보 - Nice DNR 조회 실패 시 진행 가능 금융사 없으면 예외")
-    void requestCompareLoan_auto_niceDnrFailed_throwException() {
+    fun requestCompareLoan_auto_niceDnrFailed_throwException() {
         // given
-        LoanLimitRequest request = LoanLimitRequest.create(
-                1L,
-                "윤교희",
-                "9102131234556",
-                "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
-                JobType.EMPLOYEE,
-                "오케이",
-                LoanType.AUTO,
-                true,
-                LocalDateTime.now()
-        );
-        LoanLimitStrategy strategy = mock(LoanLimitStrategy.class);
-        given(strategyFactory.getStrategy(any())).willReturn(strategy);
-        given(strategy.requiresExternalData()).willReturn(true);
+        val request = create(
+            1L,
+            "윤교희",
+            "9102131234556",
+            "wEi9oYSuekQGxT9MV4rKHG4CO+Zrp+onhLIIuembI8jx/0PLF5Ne3oMBxvUFlN4UmsgjeNErZfmpCVUFH",
+            JobType.EMPLOYEE,
+            "오케이",
+            LoanType.AUTO,
+            true,
+            LocalDateTime.now()
+        )
+        val strategy = mock(LoanLimitStrategy::class.java)
+        given(strategyFactory.getStrategy(any())).willReturn(strategy)
+        given(strategy.requiresExternalData()).willReturn(true)
 
-        ExternalDataContext externalDataContext = ExternalDataContext.ofError(
-                "NICE_DNR",
-                ExternalDataError.create(
-                        "NICE_DNR_ERROR",
-                        "NICE DNR 조회 오류"
-                )
-        );
-        given(strategy.fetchExternalData(any())).willReturn(externalDataContext);
-        given(strategy.getSupportedBanks()).willReturn(List.of(PartnerCode.LINE_BANK));
-        given(strategy.filterAvailablePartners(any(), any())).willReturn(List.of());
-        given(generator.generate("LL")).willReturn("LL20260416ANWOW");
+        val externalDataContext = ofError(
+            "NICE_DNR",
+            create("NICE_DNR_ERROR", "NICE DNR 조회 오류")
+        )
+        given(strategy.fetchExternalData(any())).willReturn(externalDataContext)
+        given(strategy.supportedBanks).willReturn(listOf(PartnerCode.LINE_BANK))
+        given(strategy.filterAvailablePartners(any(), any())).willReturn(emptyList())
+        given(generator.generate("LL")).willReturn("LL20260416ANWOW")
 
         // when & then
-        assertThatThrownBy(() -> loanLimitService.requestCompareLoan(request))
-                .isInstanceOf(InvalidRequestException.class);
-        then(loanLimitSenderService).should(never()).inquiry(anyLong(), anyList(), any());
-    }
+        assertThatThrownBy { loanLimitService.requestCompareLoan(request) }
+            .isInstanceOf(InvalidRequestException::class.java)
 
+        then(applicationEventPublisher).should(never()).publishEvent(any<LoanLimitInquiryCreatedEvent>())
+    }
 }

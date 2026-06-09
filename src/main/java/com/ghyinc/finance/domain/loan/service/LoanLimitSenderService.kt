@@ -54,17 +54,6 @@ class LoanLimitSenderService(
     }
 
     /**
-     * 트랜잭션 커밋 후 이벤트 수신 -> inquiry() 호출
-     */
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Async("loanLimitExecutor")
-    fun handleInquiryCreated(
-        inquiryCreateEvent: LoanLimitInquiryCreatedEvent
-    ) {
-        this.inquiry(inquiryCreateEvent.id, inquiryCreateEvent.activePartnerCodes, inquiryCreateEvent.adaptorRequest)
-    }
-
-    /**
      * 여러 금융사에 대한 한도조회
      *
      *
@@ -74,7 +63,7 @@ class LoanLimitSenderService(
      */
     @Transactional
     fun inquiry(
-        id: Long? = null,
+        id: Long,
         partnerCodes: List<PartnerCode>,
         adaptorRequest: LoanLimitAdaptorRequest
     ) {
