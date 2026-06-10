@@ -1,19 +1,15 @@
-package com.ghyinc.finance.global.circuitbreaker;
+package com.ghyinc.finance.global.circuitbreaker
 
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import lombok.Builder;
-import lombok.Getter;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker
 
-@Getter
-@Builder
-public class CircuitBreakerInfo {
-    private String name;
-    private CircuitBreaker.State state;
-    private float failureRate;
-    private float slowCallRate;
-    private int numberOfBufferedCalls;
-    private int numberOfFailedCalls;
-    private int numberOfSuccessfulCalls;
-    private int numberOfSlowCalls;
-    private long numberOfNotPermittedCalls;
-}
+data class CircuitBreakerInfo(
+    val name: String,
+    val state: CircuitBreaker.State,
+    val failureRate: Float,
+    val slowCallRate: Float,
+    val numberOfBufferedCalls: Int,
+    val numberOfFailedCalls: Int,
+    val numberOfSuccessfulCalls: Int,
+    val numberOfSlowCalls: Int = 0,
+    val numberOfNotPermittedCalls: Long
+) {}
