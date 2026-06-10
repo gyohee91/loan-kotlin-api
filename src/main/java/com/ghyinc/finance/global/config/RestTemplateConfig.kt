@@ -1,45 +1,34 @@
-package com.ghyinc.finance.global.config;
+package com.ghyinc.finance.global.config
 
-import com.ghyinc.finance.global.interceptor.LoggingRequestInterceptor;
-import org.springframework.boot.http.client.ClientHttpRequestFactorySettings;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.BufferingClientHttpRequestFactory;
-import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.retry.support.RetryTemplate;
-import org.springframework.web.client.RestTemplate;
-
-import java.time.Duration;
+import com.ghyinc.finance.global.interceptor.LoggingRequestInterceptor
+import org.springframework.boot.web.client.RestTemplateBuilder
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.http.client.BufferingClientHttpRequestFactory
+import org.springframework.http.client.ClientHttpRequestFactory
+import org.springframework.http.client.SimpleClientHttpRequestFactory
+import org.springframework.web.client.RestTemplate
 
 @Configuration
-public class RestTemplateConfig {
+class RestTemplateConfig {
 
     @Bean
-    public RestTemplate restTemplate(
-            RestTemplateBuilder builder,
-            RetryTemplate retryTemplate
-    ) {
-        ClientHttpRequestFactorySettings settings = ClientHttpRequestFactorySettings.defaults()
-                .withConnectTimeout(Duration.ofSeconds(5))
-                .withReadTimeout(Duration.ofSeconds(10));
+    fun restTemplate(builder: RestTemplateBuilder): RestTemplate =
+        builder
+            .requestFactory(::bufferingClientHttpRequestFactory)
+            .additionalInterceptors(LoggingRequestInterceptor()) //RetryInterceptor 제거 - Resilience4j로 대체
+            //.additionalInterceptors(new RestTemplateRetryInterceptor(retryTemplate))
+            .build()
 
-        return builder
-                .requestFactory(this::bufferingClientHttpRequestFactory)
-                .additionalInterceptors(new LoggingRequestInterceptor())
-                //RetryInterceptor 제거 - Resilience4j로 대체
-                //.additionalInterceptors(new RestTemplateRetryInterceptor(retryTemplate))
-                .build();
-    }
 
     /**
      * 요청/응답 로깅을 위한 Buffering Factory
      */
-    private ClientHttpRequestFactory bufferingClientHttpRequestFactory() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(5000);
-        factory.setReadTimeout(10000);
-        return new BufferingClientHttpRequestFactory(factory);
+    private fun bufferingClientHttpRequestFactory(): ClientHttpRequestFactory {
+        val factory = SimpleClientHttpRequestFactory().apply {
+            setConnectTimeout(5000)
+            setReadTimeout(10000)
+        }
+        return BufferingClientHttpRequestFactory(factory)
     }
 }

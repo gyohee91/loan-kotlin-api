@@ -1,25 +1,19 @@
-package com.ghyinc.finance.global.config;
+package com.ghyinc.finance.global.config
 
-import com.ghyinc.finance.domain.loan.enums.PartnerCode;
-import com.ghyinc.finance.global.client.LeaseLineConnection;
-import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-import java.util.Map;
-import java.util.stream.Collectors;
+import com.ghyinc.finance.domain.loan.enums.PartnerCode
+import com.ghyinc.finance.global.client.LeaseLineConnection
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
 
 @Configuration
-@RequiredArgsConstructor
-public class LeaseLineConfig {
-    private final PartnerApiProperties partnerApiProperties;
+class LeaseLineConfig(
+    private val partnerApiProperties: PartnerApiProperties
+) {
 
     @Bean
-    public Map<PartnerCode, LeaseLineConnection> leaseLineConnections() {
-        return partnerApiProperties.getPartners().entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> new LeaseLineConnection(e.getValue().getBaseUrl(), e.getValue().getPort())
-                ));
-    }
+    fun leaseLineConnections(): MutableMap<PartnerCode, LeaseLineConnection> =
+        partnerApiProperties.partners.mapValues { (_, config) ->
+            LeaseLineConnection(config.baseUrl, config.port)
+        }.toMutableMap()
+
 }

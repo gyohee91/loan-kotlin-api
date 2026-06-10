@@ -1,95 +1,91 @@
-package com.ghyinc.finance.global.exception;
+package com.ghyinc.finance.global.exception
 
-import com.ghyinc.finance.global.common.ErrorResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.common.errors.InvalidRequestException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+import com.ghyinc.finance.global.common.ErrorResponse
+import com.ghyinc.finance.global.common.ErrorResponse.Companion.of
+import org.apache.kafka.common.errors.InvalidRequestException
+import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.MethodArgumentNotValidException
+import org.springframework.web.bind.annotation.ExceptionHandler
+import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.client.HttpServerErrorException
+import org.springframework.web.client.ResourceAccessException
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-@Slf4j
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+class GlobalExceptionHandler {
+    private val log = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
 
     /**
      * 암호화 처리 오류
      */
-    @ExceptionHandler(CryptoException.class)
-    public ResponseEntity<ErrorResponse> handleCryptoException(CryptoException e) {
-        log.warn("CryptoException: {}", e.getMessage());
+    @ExceptionHandler(CryptoException::class)
+    fun handleCryptoException(e: CryptoException): ResponseEntity<ErrorResponse> {
+        log.warn("CryptoException: {}", e.message)
 
         return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ErrorResponse.of("암호화 처리 오류", e.getMessage()));
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(of("암호화 처리 오류", e.message))
     }
 
     /**
      * 지원하지 않는 금융사 등 (비즈니스 요청 오류)
      */
-    @ExceptionHandler(InvalidRequestException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidRequestException(InvalidRequestException e) {
-        log.warn("InvalidRequestException: {}", e.getMessage());
+    @ExceptionHandler(InvalidRequestException::class)
+    fun handleInvalidRequestException(e: InvalidRequestException): ResponseEntity<ErrorResponse> {
+        log.warn("InvalidRequestException: {}", e.message)
 
         return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(ErrorResponse.of(HttpStatus.BAD_REQUEST.getReasonPhrase(), e.getMessage()));
+            .status(HttpStatus.BAD_REQUEST)
+            .body(of(HttpStatus.BAD_REQUEST.reasonPhrase, e.message))
     }
 
     /**
-     *  외부 API 5xx 에러
+     * 외부 API 5xx 에러
      */
-    @ExceptionHandler(HttpServerErrorException.class)
-    public ResponseEntity<ErrorResponse> handleHttpServerErrorException(HttpServerErrorException e) {
-        log.error("HttpServerErrorException: {}", e.getMessage(), e);
+    @ExceptionHandler(HttpServerErrorException::class)
+    fun handleHttpServerErrorException(e: HttpServerErrorException): ResponseEntity<ErrorResponse> {
+        log.error("HttpServerErrorException: {}", e.message, e)
 
         return ResponseEntity
-                .status(HttpStatus.BAD_GATEWAY)
-                .body(ErrorResponse.of(HttpStatus.BAD_GATEWAY.getReasonPhrase(), e.getMessage()));
+            .status(HttpStatus.BAD_GATEWAY)
+            .body(of(HttpStatus.BAD_GATEWAY.reasonPhrase, e.message))
     }
 
     /**
-     *  외부 API 연결 실패
+     * 외부 API 연결 실패
      */
-    @ExceptionHandler(ResourceAccessException.class)
-    public ResponseEntity<ErrorResponse> handleResourceAccessException(ResourceAccessException e) {
-        log.error("ResourceAccessException: {}", e.getMessage(), e);
+    @ExceptionHandler(ResourceAccessException::class)
+    fun handleResourceAccessException(e: ResourceAccessException): ResponseEntity<ErrorResponse> {
+        log.error("ResourceAccessException: {}", e.message, e)
 
         return ResponseEntity
-                .status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body(ErrorResponse.of(HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(), e.getMessage()));
+            .status(HttpStatus.SERVICE_UNAVAILABLE)
+            .body(of(HttpStatus.SERVICE_UNAVAILABLE.reasonPhrase, e.message))
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e) {
-        log.error("MethodArgumentNotValidException: {}", e.getMessage(), e);
+    @ExceptionHandler(MethodArgumentNotValidException::class)
+    fun handleValidationException(e: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
+        log.error("MethodArgumentNotValidException: {}", e.message, e)
 
-        String errorMessage = e.getBindingResult().getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .collect(Collectors.joining(", "));
-
-        return ResponseEntity.badRequest()
-                .body(ErrorResponse.of(HttpStatus.BAD_REQUEST.getReasonPhrase(), errorMessage));
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception e) {
-        if(e instanceof AsyncRequestNotUsableException) {
-            return ResponseEntity.noContent().build();
+        val errorMessage = e.bindingResult.fieldErrors.joinToString(", ") { error ->
+            "${error.field}: ${error.defaultMessage}"
         }
 
-        log.error("Exception: {}", e.getMessage(), e);
+        return ResponseEntity.badRequest()
+            .body(of(HttpStatus.BAD_REQUEST.reasonPhrase, errorMessage))
+    }
+
+    @ExceptionHandler(Exception::class)
+    fun handleException(e: Exception): ResponseEntity<ErrorResponse> {
+        if (e is AsyncRequestNotUsableException) {
+            return ResponseEntity.noContent().build()
+        }
+
+        log.error("Exception: {}", e.message, e)
 
         return ResponseEntity.internalServerError()
-                .body(ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(), e.getMessage()));
+            .body(of(HttpStatus.INTERNAL_SERVER_ERROR.reasonPhrase, e.message))
     }
 }

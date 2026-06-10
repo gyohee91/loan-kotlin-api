@@ -1,14 +1,6 @@
-package com.ghyinc.finance.global.exception;
+package com.ghyinc.finance.global.exception
 
-import lombok.Getter;
-
-@Getter
-public class ExternalApiFailException extends RuntimeException {
-    private final String resultCode;
-
-    public ExternalApiFailException(String resultCode, String message) {
-        super(message);
-        this.resultCode = resultCode;
-    }
-
-}
+class ExternalApiFailException(
+    val resultCode: String,
+    message: String?
+) : RuntimeException(message)

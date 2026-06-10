@@ -1,9 +1,9 @@
-package com.ghyinc.finance.global.config;
+package com.ghyinc.finance.global.config
 
-import org.apache.kafka.clients.admin.NewTopic;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.config.TopicBuilder;
+import org.apache.kafka.clients.admin.NewTopic
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.kafka.config.TopicBuilder
 
 /**
  * Kafka 토픽 생성 설정
@@ -13,29 +13,28 @@ import org.springframework.kafka.config.TopicBuilder;
  * - 운영: 토픽을 사전에 수동 생성하고 이 Config는 제거하나 프로파일로 분리
  */
 @Configuration
-public class KafkaTopicConfig {
-
+class KafkaTopicConfig {
     /**
      * 알림서비스 전송
      * @return
      */
     @Bean
-    public NewTopic notificationSendTopic() {
-        return TopicBuilder.name("notification.send")
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
+    fun notificationSendTopic(): NewTopic =
+        TopicBuilder.name("notification.send")
+            .partitions(3)
+            .replicas(1)
+            .build()
+
 
     /**
      * 한도조회 완료
      * @return
      */
     @Bean
-    public NewTopic loanLimitSendTopic() {
-        return TopicBuilder.name("loan-limit-completed")
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
+    fun loanLimitSendTopic(): NewTopic =
+        TopicBuilder.name("loan-limit-completed")
+            .partitions(3)
+            .replicas(1)
+            .build()
+
 }
