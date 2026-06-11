@@ -1,84 +1,76 @@
-package com.ghyinc.finance.global.interceptor;
+package com.ghyinc.finance.global.interceptor
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpRequest;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.client.ClientHttpRequestExecution;
-import org.springframework.http.client.ClientHttpRequestInterceptor;
-import org.springframework.http.client.ClientHttpResponse;
+import org.slf4j.LoggerFactory
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpRequest
+import org.springframework.http.HttpStatusCode
+import org.springframework.http.client.ClientHttpRequestExecution
+import org.springframework.http.client.ClientHttpRequestInterceptor
+import org.springframework.http.client.ClientHttpResponse
+import java.io.BufferedReader
+import java.io.ByteArrayInputStream
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.nio.charset.StandardCharsets
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.util.stream.Collectors;
+class LoggingRequestInterceptor : ClientHttpRequestInterceptor {
+    private val log = LoggerFactory.getLogger(LoggingRequestInterceptor::class.java)
 
-@Slf4j
-public class LoggingRequestInterceptor implements ClientHttpRequestInterceptor {
-    @Override
-    public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
+    override fun intercept(
+        request: HttpRequest,
+        body: ByteArray,
+        execution: ClientHttpRequestExecution
+    ): ClientHttpResponse {
         //요청 로깅
-        log.info(">>> URL: {}", request.getURI());
-        log.info(">>> Method: {}", request.getMethod());
-        log.info(">>> Headers: {}", request.getHeaders());
-        log.info(">>> Request Body: {}", new String(body, StandardCharsets.UTF_8));
+        log.info(">>> URL: {}", request.uri)
+        log.info(">>> Method: {}", request.method)
+        log.info(">>> Headers: {}", request.headers)
+        log.info(">>> Request Body: {}", String(body, StandardCharsets.UTF_8))
 
-        long start = System.currentTimeMillis();
+        val start = System.currentTimeMillis()
+        val response = execution.execute(request, body)
+        val duration = System.currentTimeMillis() - start
 
-        ClientHttpResponse response = execution.execute(request, body);
-
-        long duration = System.currentTimeMillis() - start;
-
-        ClientHttpResponse bufferedResponse = new BufferingClientHttpResponseWrapper(response);
+        val bufferedResponse: ClientHttpResponse = BufferingClientHttpResponseWrapper(response)
 
         //응답 로깅
-        log.info("<<< Status Code: {}", bufferedResponse.getStatusCode());
-        log.info("<<< Status Text: {}", bufferedResponse.getStatusText());
-        log.info("<<< Headers: {}", bufferedResponse.getHeaders());
-        log.info("<<< Body: {}",
-                new BufferedReader(new InputStreamReader(bufferedResponse.getBody(), StandardCharsets.UTF_8))
-                        .lines()
-                        .collect(Collectors.joining())
-        );
-        log.info("<<< Duration: {}ms", duration);
+        log.info("<<< Status Code: {}", bufferedResponse.statusCode)
+        log.info("<<< Status Text: {}", bufferedResponse.statusText)
+        log.info("<<< Headers: {}", bufferedResponse.headers)
+        log.info(
+            "<<< Body: {}",
+            BufferedReader(InputStreamReader(bufferedResponse.body, StandardCharsets.UTF_8))
+                .lines()
+                .toList()
+                .joinToString("")
+        )
+        log.info("<<< Duration: {}ms", duration)
 
-        return bufferedResponse;
+        return bufferedResponse
     }
 
     /**
      * Body 재읽기 가능하도록 버퍼링
      */
-    private static class BufferingClientHttpResponseWrapper implements ClientHttpResponse {
-        private final ClientHttpResponse response;
-        private byte[] body;
+    private class BufferingClientHttpResponseWrapper(
+        private val response: ClientHttpResponse
+    ) : ClientHttpResponse {
 
-        public BufferingClientHttpResponseWrapper(ClientHttpResponse response) throws IOException {
-            this.response = response;
-            this.body = response.getBody().readAllBytes();
-        }
+        private val body: ByteArray = response.body.readAllBytes()
 
-        @Override
-        public HttpStatusCode getStatusCode() throws IOException {
-            return response.getStatusCode();
-        }
+        override fun getStatusCode(): HttpStatusCode = response.statusCode
 
-        @Override
-        public String getStatusText() throws IOException {
-            return response.getStatusText();
-        }
 
-        @Override
-        public void close() {
-            response.close();
-        }
+        override fun getStatusText(): String = response.statusText
 
-        @Override
-        public InputStream getBody() throws IOException {
-            return new ByteArrayInputStream(body);      // 매번 새 스트림 반환
-        }
 
-        @Override
-        public HttpHeaders getHeaders() {
-            return response.getHeaders();
-        }
+        override fun close() = response.close()
+
+
+        override fun getBody(): InputStream = ByteArrayInputStream(body) // 매번 새 스트림 반환
+
+
+        override fun getHeaders(): HttpHeaders = response.headers
+
     }
 }
