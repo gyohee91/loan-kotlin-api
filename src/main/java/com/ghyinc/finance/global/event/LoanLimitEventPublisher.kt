@@ -1,5 +1,5 @@
-package com.ghyinc.finance.global.event;
+package com.ghyinc.finance.global.event
 
-public interface LoanLimitEventPublisher {
-    public void publishCompletedEvent(LoanLimitCompletedEvent event);
+interface LoanLimitEventPublisher {
+    fun publishCompletedEvent(event: LoanLimitCompletedEvent)
 }
